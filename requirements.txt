@@ -1,0 +1,20 @@
+# Core
+httpx>=0.25.0
+python-dotenv>=1.0.0
+
+# LangChain + Azure OpenAI
+langchain-core>=0.3.0
+langchain-openai>=0.3.0
+
+# Dashboard
+streamlit>=1.30.0
+pandas>=2.0.0
+
+# API
+fastapi>=0.109.0
+uvicorn[standard]>=0.25.0
+python-multipart>=0.0.6
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

@@ -1,0 +1,103 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2024-01-15T10:00:00Z",
+    "component": {
+      "type": "device",
+      "name": "Plant-A OT Infrastructure",
+      "version": "2024.1"
+    }
+  },
+  "components": [
+    {
+      "type": "firmware",
+      "bom-ref": "FW-S7-1200",
+      "name": "SIMATIC S7-1200 Firmware",
+      "version": "4.5.0",
+      "publisher": "Siemens",
+      "description": "Main process controller PLC firmware",
+      "cpe": "cpe:2.3:o:siemens:simatic_s7-1200_firmware:4.5.0:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "1"},
+        {"name": "network_zone", "value": "OT-Zone1"},
+        {"name": "exposure", "value": "isolated"},
+        {"name": "patch_status", "value": "available"}
+      ]
+    },
+    {
+      "type": "firmware",
+      "bom-ref": "FW-S7-1500",
+      "name": "SIMATIC S7-1500 Firmware",
+      "version": "2.9.2",
+      "publisher": "Siemens",
+      "description": "Auxiliary controller PLC firmware",
+      "cpe": "cpe:2.3:o:siemens:simatic_s7-1500_firmware:2.9.2:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "1"},
+        {"name": "network_zone", "value": "OT-Zone1"},
+        {"name": "exposure", "value": "isolated"},
+        {"name": "patch_status", "value": "available"}
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "APP-WINCC",
+      "name": "SIMATIC WinCC Runtime",
+      "version": "16.0",
+      "publisher": "Siemens",
+      "description": "Operator HMI application",
+      "cpe": "cpe:2.3:a:siemens:simatic_wincc_runtime:16.0:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "2"},
+        {"name": "network_zone", "value": "OT-Zone2"},
+        {"name": "exposure", "value": "corporate"}
+      ]
+    },
+    {
+      "type": "firmware",
+      "bom-ref": "FW-M340",
+      "name": "Modicon M340 Firmware",
+      "version": "3.20",
+      "publisher": "Schneider Electric",
+      "description": "Field RTU firmware",
+      "cpe": "cpe:2.3:o:schneiderelectric:modicon_m340_firmware:3.20:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "1"},
+        {"name": "network_zone", "value": "OT-Zone1"},
+        {"name": "exposure", "value": "air-gapped"},
+        {"name": "patch_status", "value": "unavailable"}
+      ]
+    },
+    {
+      "type": "firmware",
+      "bom-ref": "FW-FORTI",
+      "name": "FortiGate 60F Firmware",
+      "version": "7.0.5",
+      "publisher": "Fortinet",
+      "description": "OT perimeter firewall",
+      "cpe": "cpe:2.3:o:fortinet:fortigate_firmware:7.0.5:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "3.5"},
+        {"name": "network_zone", "value": "OT-DMZ"},
+        {"name": "exposure", "value": "dmz"}
+      ]
+    },
+    {
+      "type": "firmware",
+      "bom-ref": "FW-MOXA",
+      "name": "EDR-G9010 Firmware",
+      "version": "1.0",
+      "publisher": "Moxa",
+      "description": "Remote access VPN gateway",
+      "cpe": "cpe:2.3:o:moxa:edr-g9010_firmware:1.0:*:*:*:*:*:*:*",
+      "properties": [
+        {"name": "purdue_level", "value": "3.5"},
+        {"name": "network_zone", "value": "OT-DMZ"},
+        {"name": "exposure", "value": "internet"}
+      ]
+    }
+  ]
+}

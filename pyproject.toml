@@ -1,0 +1,34 @@
+[project]
+name = "ics-supply-chain-scanner"
+version = "1.0.0"
+description = "ICS/OT supply chain vulnerability scanner with NVD CVE, CISA KEV, OT risk scoring, and IEC 62443 remediation"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.3.0",
+]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.30.0", "pandas>=2.0.0"]
+api = ["fastapi>=0.109.0", "uvicorn[standard]>=0.25.0", "python-multipart>=0.0.6"]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.23.0", "ruff>=0.4.0"]
+all = ["ics-supply-chain-scanner[dashboard,api,dev]"]
+
+[project.scripts]
+ics-scanner = "main:cli"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests that make network calls",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
