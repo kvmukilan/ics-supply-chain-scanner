@@ -1,0 +1,333 @@
+{
+  "resultsPerPage": 5,
+  "startIndex": 0,
+  "totalResults": 5,
+  "format": "NVD_CVE",
+  "version": "2.0",
+  "timestamp": "2026-10-03T00:00:00.000",
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2022-40001",
+        "sourceIdentifier": "psirt@fortinet.com",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "An authentication bypass in Fortinet FortiOS before 7.0.5 allows a remote attacker to log in."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://fortiguard.fortinet.com/psirt/TEST-CVE-2022-40001"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:fortinet:fortios:*:*:*:*:*:*:*:*",
+                    "matchCriteriaId": "TEST-FORTIOS",
+                    "versionEndExcluding": "7.0.5"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2022-40002",
+        "sourceIdentifier": "psirt@fortinet.com",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A heap overflow in Fortinet FortiOS before 7.0.3 allows denial of service."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://fortiguard.fortinet.com/psirt/TEST-CVE-2022-40002"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:fortinet:fortios:*:*:*:*:*:*:*:*",
+                    "matchCriteriaId": "TEST-FORTIOS",
+                    "versionEndExcluding": "7.0.3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2022-40003",
+        "sourceIdentifier": "psirt@fortinet.com",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "An OS command injection in Fortinet FortiOS 7.0.x allows arbitrary command execution."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.1,
+                "baseSeverity": "CRITICAL"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://fortiguard.fortinet.com/psirt/TEST-CVE-2022-40003"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:fortinet:fortios:*:*:*:*:*:*:*:*",
+                    "matchCriteriaId": "TEST-FORTIOS",
+                    "versionStartIncluding": "7.0.0",
+                    "versionEndExcluding": "7.0.6"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2022-40004",
+        "sourceIdentifier": "psirt@fortinet.com",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "An improper access control in Fortinet FortiOS permits privilege escalation."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 8.8,
+                "baseSeverity": "HIGH"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://fortiguard.fortinet.com/psirt/TEST-CVE-2022-40004"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:fortinet:fortios:*:*:*:*:*:*:*:*",
+                    "matchCriteriaId": "TEST-FORTIOS",
+                    "versionStartIncluding": "6.4.0",
+                    "versionEndIncluding": "7.0.5"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2022-40005",
+        "sourceIdentifier": "psirt@fortinet.com",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A path traversal in Fortinet FortiOS 7.2.x exposes sensitive files."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 7.2,
+                "baseSeverity": "HIGH"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://fortiguard.fortinet.com/psirt/TEST-CVE-2022-40005"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:fortinet:fortios:*:*:*:*:*:*:*:*",
+                    "matchCriteriaId": "TEST-FORTIOS",
+                    "versionStartIncluding": "7.2.0",
+                    "versionEndExcluding": "7.4.0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
