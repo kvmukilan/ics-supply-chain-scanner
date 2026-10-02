@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 import httpx
 
@@ -30,6 +31,23 @@ def parse_cpe_keywords(cpe_string: str) -> tuple[str, str, str]:
         version = parts[5] if parts[5] not in ("*", "-") else ""
         return vendor, product, version
     return "", "", ""
+
+
+def _normalize(text: str) -> str:
+    """Lower-case and drop everything but letters/digits ("ControlLogix 5580" -> "controllogix5580")."""
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def build_keyword_query(product: str) -> str:
+    """Build an NVD keywordSearch string for a CPE product.
+
+    NVD ANDs every keyword against the CVE description. CPE vendor tokens are
+    concatenated identifiers ("rockwellautomation", "schneiderelectric") that
+    never appear in prose, and the "_firmware" suffix on firmware CPEs is
+    rarely in the text either, so including them makes the fallback return
+    nothing. Search on the product words alone and filter results afterwards.
+    """
+    return " ".join(w for w in product.split() if w.lower() != "firmware")
 
 
 class NVDClient:
@@ -69,7 +87,7 @@ class NVDClient:
                 logger.info(f"Found 0 CVEs for {cpe_string} (no fallback keywords)")
                 return []
 
-            keyword = f"{vendor} {product}"
+            keyword = build_keyword_query(product)
             logger.info(f"Exact CPE match returned 0 results. Falling back to keywordSearch: '{keyword}'")
 
             await asyncio.sleep(self.rate_delay)
@@ -135,14 +153,16 @@ class NVDClient:
         whose affected configs likely overlap the target version.
         This is a heuristic — keyword search is inherently broader than CPE match.
         """
-        vendor_lower = vendor.lower()
-        product_lower = product.lower()
+        # Compare with spacing/punctuation removed so that the CPE token
+        # "rockwellautomation" matches "Rockwell Automation" in the description.
+        vendor_norm = _normalize(vendor)
+        product_norm = _normalize(build_keyword_query(product))
         filtered = []
 
         for cve in cves:
-            desc = cve.description.lower()
-            # Must mention the product
-            if product_lower not in desc and vendor_lower not in desc:
+            desc = _normalize(cve.description)
+            # Must mention the product or the vendor
+            if not (product_norm and product_norm in desc) and vendor_norm not in desc:
                 continue
             filtered.append(cve)
 
@@ -219,12 +239,14 @@ class NVDClient:
                 ref.get("url", "") for ref in cve_data.get("references", [])[:5]
             ]
 
-            # Extract CWE IDs
+            # Extract CWE IDs. NVD often lists the same CWE twice (Primary from NVD,
+            # Secondary from the CNA), so de-duplicate while keeping order.
             weaknesses = []
             for weakness in cve_data.get("weaknesses", []):
                 for desc in weakness.get("description", []):
-                    if desc.get("value", "").startswith("CWE-"):
-                        weaknesses.append(desc["value"])
+                    value = desc.get("value", "")
+                    if value.startswith("CWE-") and value not in weaknesses:
+                        weaknesses.append(value)
 
             return CVEEntry(
                 cve_id=cve_id,
