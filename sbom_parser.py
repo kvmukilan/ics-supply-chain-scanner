@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
 from models import Asset
@@ -22,7 +21,7 @@ def parse_sbom(filepath: str | Path) -> list[Asset]:
     if not filepath.exists():
         raise FileNotFoundError(f"SBOM file not found: {filepath}")
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
 
     # Detect format

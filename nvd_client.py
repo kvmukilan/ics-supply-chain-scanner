@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
-from typing import Optional
 
 import httpx
 
@@ -153,7 +151,7 @@ class NVDClient:
 
     async def _request_with_retry(
         self, client: httpx.AsyncClient, params: dict
-    ) -> Optional[httpx.Response]:
+    ) -> httpx.Response | None:
         """Make request with retry logic for rate limits and transient errors."""
         for attempt in range(self.config.max_retries):
             try:
@@ -186,7 +184,7 @@ class NVDClient:
         return None
 
     @staticmethod
-    def _parse_cve(vuln_data: dict) -> Optional[CVEEntry]:
+    def _parse_cve(vuln_data: dict) -> CVEEntry | None:
         """Parse a single CVE entry from NVD response."""
         try:
             cve_data = vuln_data.get("cve", {})

@@ -9,19 +9,16 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import tempfile
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from analytics import compute_analytics
 from config import ScannerConfig
 from inventory import load_inventory
 from kev_client import KEVClient
@@ -29,12 +26,10 @@ from models import (
     Asset,
     CVEEntry,
     Finding,
-    NetworkExposure,
-    PatchStatus,
     ScanResult,
     Severity,
 )
-from analytics import compute_analytics
+from rate_limiter import RateLimiterMiddleware
 from report import generate_csv_report, generate_html_report, generate_json_report
 from risk_scorer import OTRiskScorer
 from scanner import ICSScanner
@@ -53,7 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from rate_limiter import RateLimiterMiddleware
 app.add_middleware(
     RateLimiterMiddleware,
     requests_per_minute=30,
@@ -63,8 +57,8 @@ app.add_middleware(
 
 # Shared state
 _config = ScannerConfig()
-_kev_client: Optional[KEVClient] = None
-_last_scan_result: Optional[ScanResult] = None
+_kev_client: KEVClient | None = None
+_last_scan_result: ScanResult | None = None
 
 
 async def get_kev_client() -> KEVClient:
@@ -190,7 +184,7 @@ async def run_scan(
             errors=result.errors,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -235,8 +229,8 @@ async def score_single(req: ScoreRequest):
     scorer.score_finding(finding)
 
     # Template remediation (fast, no LLM call)
-    from remediation import RemediationGenerator
     from config import AzureOpenAIConfig
+    from remediation import RemediationGenerator
 
     gen = RemediationGenerator(AzureOpenAIConfig())
     finding = await gen.generate(finding)

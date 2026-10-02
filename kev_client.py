@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -37,7 +34,7 @@ class KEVClient:
 
         await self._fetch_remote()
 
-    def _load_from_cache(self) -> Optional[dict[str, KEVEntry]]:
+    def _load_from_cache(self) -> dict[str, KEVEntry] | None:
         """Load catalog from local cache if fresh enough."""
         cache_path = Path(self.config.cache_path)
         if not cache_path.exists():
@@ -50,7 +47,7 @@ class KEVClient:
             return None
 
         try:
-            with open(cache_path, "r", encoding="utf-8") as f:
+            with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
             return self._parse_catalog(data)
         except (json.JSONDecodeError, KeyError) as e:
@@ -81,7 +78,7 @@ class KEVClient:
             cache_path = Path(self.config.cache_path)
             if cache_path.exists():
                 logger.info("Using stale KEV cache as fallback")
-                with open(cache_path, "r", encoding="utf-8") as f:
+                with open(cache_path, encoding="utf-8") as f:
                     data = json.load(f)
                 self._catalog = self._parse_catalog(data)
                 self._loaded = True
@@ -114,7 +111,7 @@ class KEVClient:
                 )
         return catalog
 
-    def lookup(self, cve_id: str) -> Optional[KEVEntry]:
+    def lookup(self, cve_id: str) -> KEVEntry | None:
         """Check if a CVE is in the KEV catalog."""
         if not self._loaded:
             logger.warning("KEV catalog not loaded. Call load_catalog() first.")

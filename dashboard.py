@@ -6,17 +6,15 @@ import asyncio
 import json
 import os
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from config import ScannerConfig
 from inventory import load_inventory
-from models import Asset, Finding, Severity
+from models import Finding
 from scanner import ICSScanner
-
 
 # --- Page Config ---
 st.set_page_config(
@@ -75,15 +73,21 @@ def build_config_from_sidebar() -> ScannerConfig:
     config = ScannerConfig()
 
     st.sidebar.header("API Configuration")
-    nvd_key = st.sidebar.text_input("NVD API Key (optional)", type="password", value=os.getenv("NVD_API_KEY", ""))
+    nvd_key = st.sidebar.text_input(
+        "NVD API Key (optional)", type="password", value=os.getenv("NVD_API_KEY", "")
+    )
     if nvd_key:
         config.nvd.api_key = nvd_key
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("Azure OpenAI (optional)")
     aoai_endpoint = st.sidebar.text_input("Endpoint", value=os.getenv("AZURE_OPENAI_ENDPOINT", ""))
-    aoai_key = st.sidebar.text_input("API Key", type="password", value=os.getenv("AZURE_OPENAI_API_KEY", ""))
-    aoai_deployment = st.sidebar.text_input("Deployment", value=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"))
+    aoai_key = st.sidebar.text_input(
+        "API Key", type="password", value=os.getenv("AZURE_OPENAI_API_KEY", "")
+    )
+    aoai_deployment = st.sidebar.text_input(
+        "Deployment", value=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    )
 
     if aoai_endpoint and aoai_key:
         config.llm.endpoint = aoai_endpoint
@@ -128,7 +132,7 @@ def render_summary(findings: list[Finding], total_assets: int):
         ("In CISA KEV", kev_count, "#7c3aed"),
     ]
 
-    for col, (label, value, color) in zip(cols, metrics):
+    for col, (label, value, color) in zip(cols, metrics, strict=True):
         with col:
             if color:
                 st.markdown(f"""
@@ -182,7 +186,10 @@ def render_finding_detail(finding: Finding):
     kev_tag = " 🔴 **CISA KEV**" if f.in_kev else ""
 
     st.markdown(f"### {f.cve.cve_id}{kev_tag}")
-    st.markdown(f"**OT Risk Score: {f.ot_risk_score:.2f}** ({f.ot_severity.value}) | CVSS Base: {f.cve.cvss_base_score}")
+    st.markdown(
+        f"**OT Risk Score: {f.ot_risk_score:.2f}** ({f.ot_severity.value}) | "
+        f"CVSS Base: {f.cve.cvss_base_score}"
+    )
 
     col1, col2 = st.columns(2)
     with col1:
@@ -336,7 +343,9 @@ def main():
         # Filters
         fcol1, fcol2, fcol3 = st.columns(3)
         with fcol1:
-            sev_filter = st.multiselect("Severity", ["CRITICAL", "HIGH", "MEDIUM", "LOW"], default=["CRITICAL", "HIGH"])
+            sev_filter = st.multiselect(
+                "Severity", ["CRITICAL", "HIGH", "MEDIUM", "LOW"], default=["CRITICAL", "HIGH"]
+            )
         with fcol2:
             kev_only = st.checkbox("KEV only")
         with fcol3:

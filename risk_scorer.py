@@ -61,7 +61,10 @@ class OTRiskScorer:
             "kev_weight": kev_w,
             "raw_score": round(raw_score, 3),
             "final_score": round(final_score, 2),
-            "formula": f"{base} × {purdue_w} × {exposure_w} × {patch_w} × {kev_w} = {round(raw_score, 3)} → capped at {round(final_score, 2)}",
+            "formula": (
+                f"{base} × {purdue_w} × {exposure_w} × {patch_w} × {kev_w} = {round(raw_score, 3)}"
+                + (f" → capped at {round(final_score, 2)}" if raw_score > final_score else "")
+            ),
         }
 
         return final_score, breakdown

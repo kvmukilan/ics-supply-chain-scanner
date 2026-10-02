@@ -7,7 +7,6 @@ Foundational Requirement across Purdue levels.
 
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -191,16 +190,7 @@ def _map_findings_to_frs(findings: list[Finding], report: ComplianceReport) -> N
 
 def _map_explicit_iec_mappings(findings: list[Finding], report: ComplianceReport) -> None:
     """Map findings via explicit IEC 62443 mapping strings (e.g., 'FR3: ...')."""
-    for f in findings:
-        for mapping in f.iec_62443_mappings:
-            for fr_id in IEC_62443_FRAMEWORK:
-                if mapping.upper().startswith(fr_id):
-                    score = report.fr_scores[fr_id]
-                    # Only increment if not already counted via CWE
-                    # Use a simple heuristic: track affected asset count separately
-                    break
-
-    # Count unique affected assets per FR
+    # Count unique affected assets per FR (CWE-derived and explicit mappings)
     fr_assets: dict[str, set[str]] = defaultdict(set)
     for f in findings:
         cwes = set(w.upper() for w in f.cve.weaknesses)

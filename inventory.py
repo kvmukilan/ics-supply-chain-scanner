@@ -7,7 +7,7 @@ import json
 import logging
 from pathlib import Path
 
-from models import Asset, NetworkExposure, PatchStatus
+from models import Asset
 from validators import validate_cpe
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def parse_csv(filepath: str | Path) -> list[Asset]:
         raise FileNotFoundError(f"Inventory file not found: {filepath}")
 
     assets = []
-    with open(filepath, "r", encoding="utf-8-sig") as f:
+    with open(filepath, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         headers = reader.fieldnames or []
         col_map = {}
@@ -98,7 +98,7 @@ def parse_json(filepath: str | Path) -> list[Asset]:
     if not filepath.exists():
         raise FileNotFoundError(f"Inventory file not found: {filepath}")
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
 
     if isinstance(data, dict):
@@ -142,7 +142,7 @@ def load_inventory(filepath: str | Path) -> list[Asset]:
         return parse_csv(filepath)
     elif ext == ".json":
         # Peek to detect SBOM format
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict) and ("bomFormat" in data or "spdxVersion" in data):
             from sbom_parser import parse_sbom

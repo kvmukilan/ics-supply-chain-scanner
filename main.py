@@ -149,8 +149,14 @@ async def main() -> int:
     result = await scanner.scan(str(inventory_path))
 
     # Generate reports
-    from report import generate_csv_report, generate_html_report, generate_json_report, generate_markdown_report
     from datetime import datetime, timezone
+
+    from report import (
+        generate_csv_report,
+        generate_html_report,
+        generate_json_report,
+        generate_markdown_report,
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     prefix = f"{args.output}/{result.scan_id}_{timestamp}"
@@ -197,7 +203,8 @@ async def main() -> int:
     # Quality gate
     gate_exit = 0
     if args.gate:
-        from quality_gate import GatePolicy, evaluate as gate_evaluate
+        from quality_gate import GatePolicy
+        from quality_gate import evaluate as gate_evaluate
         gate_policy = GatePolicy(
             max_critical=args.gate_max_critical,
             max_kev=args.gate_max_kev,
@@ -233,7 +240,8 @@ async def main() -> int:
         from compliance import assess_compliance
         compliance = assess_compliance(result)
         posture_icon = {"compliant": "[OK]", "at_risk": "[!!]", "non_compliant": "[XX]"}
-        print(f"\nIEC 62443 Posture: {posture_icon.get(compliance.overall_posture, '?')} {compliance.overall_posture.upper()}")
+        icon = posture_icon.get(compliance.overall_posture, "?")
+        print(f"\nIEC 62443 Posture: {icon} {compliance.overall_posture.upper()}")
         failing = [fr for fr, s in compliance.fr_scores.items() if s.status == "fail"]
         at_risk = [fr for fr, s in compliance.fr_scores.items() if s.status == "at_risk"]
         if failing:
@@ -244,9 +252,9 @@ async def main() -> int:
     # Quality gate result
     if args.gate:
         if gate_result.passed:
-            print(f"\nQuality Gate: PASSED")
+            print("\nQuality Gate: PASSED")
         else:
-            print(f"\nQuality Gate: FAILED")
+            print("\nQuality Gate: FAILED")
             for v in gate_result.violations:
                 print(f"  VIOLATION: {v.message}")
 
@@ -302,8 +310,8 @@ def _validate_inventory(inventory_path: str, logger) -> int:
 
 def _run_diff(baseline_path: str, current_result, logger) -> None:
     """Compare current scan against a previous JSON report."""
-    from scan_diff import compare_scans
     from models import ScanResult
+    from scan_diff import compare_scans
 
     baseline_file = Path(baseline_path)
     if not baseline_file.exists():
