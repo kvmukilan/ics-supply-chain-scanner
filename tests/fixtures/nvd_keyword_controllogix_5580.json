@@ -123,6 +123,25 @@
               "US Government Resource"
             ]
           }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
         ]
       }
     },
@@ -276,6 +295,25 @@
               "US Government Resource"
             ]
           }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
         ]
       }
     },
@@ -395,6 +433,25 @@
               "Broken Link"
             ]
           }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
         ]
       }
     },
@@ -495,6 +552,25 @@
           {
             "url": "https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1788.html",
             "source": "PSIRT@rockwellautomation.com"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
           }
         ]
       }

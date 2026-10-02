@@ -38,6 +38,29 @@ def _normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
+def _version_tokens(version: str) -> tuple:
+    """Split a version into comparable tokens, e.g. "7.0.5" -> ((1,7,''),(1,0,''),(1,5,'')).
+
+    Numeric runs compare as integers (so 7.0.9 < 7.0.10), alphabetic runs as strings,
+    and a numeric token always sorts above an alphabetic one at the same position (so a
+    release sorts above its pre-releases). Handles mixed tokens like "7.0.5a".
+    """
+    tokens: list[tuple[int, int, str]] = []
+    for chunk in re.split(r"[._\-+~]", version.strip()):
+        for part in re.findall(r"\d+|[A-Za-z]+", chunk):
+            if part.isdigit():
+                tokens.append((1, int(part), ""))
+            else:
+                tokens.append((0, 0, part.lower()))
+    return tuple(tokens)
+
+
+def compare_versions(a: str, b: str) -> int:
+    """Compare two dotted version strings numerically. Returns -1, 0, or 1."""
+    ta, tb = _version_tokens(a), _version_tokens(b)
+    return (ta > tb) - (ta < tb)
+
+
 def build_keyword_query(product: str) -> str:
     """Build an NVD keywordSearch string for a CPE product.
 
@@ -83,31 +106,52 @@ class NVDClient:
         return headers
 
     async def query_cpes(self, cpe_string: str, client: httpx.AsyncClient) -> list[CVEEntry]:
-        """Query NVD for CVEs matching a CPE string.
+        """Query NVD for CVEs affecting a CPE, version-checked client-side.
 
         Strategy: exact cpeName match first, then keywordSearch fallback if 0 results.
+        Every returned CVE is version-checked against its NVD CPE applicability data
+        (configurations). Right-product/wrong-version hits are dropped; matches that
+        couldn't be version-verified are labelled match_method="keyword" (or an
+        unverified "cpe") with version_checked=False so callers can treat them as
+        "possible" rather than confirmed.
         """
         async with self._semaphore:
-            # Step 1: Exact CPE match
+            vendor, product, version = parse_cpe_keywords(cpe_string)
+
+            # Step 1: Exact CPE match (NVD resolves the CPE and its version ranges).
             cves = await self._paginated_query(
                 client, {"cpeName": cpe_string, "resultsPerPage": 100}
             )
 
             if cves:
-                logger.info(f"Found {len(cves)} CVEs (exact CPE) for {cpe_string}")
+                cves = self._apply_version_matching(
+                    cves, vendor, product, version, from_keyword=False
+                )
+                confirmed = sum(1 for c in cves if c.version_checked)
+                logger.info(
+                    f"Found {len(cves)} CVEs (exact CPE) for {cpe_string} "
+                    f"[{confirmed} version-confirmed]"
+                )
                 return cves
 
+            # Exact match returned nothing: the CPE could not be resolved against NVD's
+            # dictionary (e.g. sample uses fortinet:fortigate_firmware but NVD indexes
+            # fortinet:fortios). Warn and fall back to a broad keyword search — those hits
+            # are "possible" unless applicability data lets us confirm the version.
+            logger.warning(
+                f"CPE not resolved in NVD dictionary: {cpe_string} "
+                f"(exact cpeName match returned 0 results). Falling back to keyword search; "
+                f"hits are reported as 'possible' unless CPE applicability confirms the version."
+            )
+
             # Step 2: Fallback to keywordSearch
-            vendor, product, version = parse_cpe_keywords(cpe_string)
             if not (vendor and product):
                 logger.info(f"Found 0 CVEs for {cpe_string} (no fallback keywords)")
                 return []
 
             cves = []
             for keyword in build_keyword_queries(vendor, product):
-                logger.info(
-                    f"No CVEs yet for {cpe_string}. Falling back to keywordSearch: '{keyword}'"
-                )
+                logger.info(f"Keyword fallback for {cpe_string}: '{keyword}'")
                 await asyncio.sleep(self.rate_delay)
                 cves = await self._paginated_query(
                     client,
@@ -117,15 +161,14 @@ class NVDClient:
                 if cves:
                     break
 
-            # Filter by version if available — keyword search is broad
-            if version and cves:
-                pre_filter = len(cves)
-                cves = self._filter_by_version_relevance(cves, vendor, product, version)
-                logger.debug(
-                    f"Keyword fallback: {pre_filter} raw → {len(cves)} after version filtering"
-                )
-
-            logger.info(f"Found {len(cves)} CVEs (keyword fallback) for {cpe_string}")
+            cves = self._apply_version_matching(
+                cves, vendor, product, version, from_keyword=True
+            )
+            confirmed = sum(1 for c in cves if c.version_checked)
+            logger.info(
+                f"Found {len(cves)} CVEs (keyword fallback) for {cpe_string} "
+                f"[{confirmed} version-confirmed, {len(cves) - confirmed} possible]"
+            )
             return cves
 
     async def _paginated_query(
@@ -157,6 +200,13 @@ class NVDClient:
                 if start_index >= total:
                     break
                 if max_results is not None and len(cves) >= max_results:
+                    # Don't silently drop the rest: say so, since a version-relevant CVE
+                    # could be beyond the cap and would then be missed.
+                    search = base_params.get("keywordSearch") or base_params.get("cpeName") or "?"
+                    logger.warning(
+                        f"NVD results truncated at {max_results} of {total} for "
+                        f"'{search}'; some affected versions may be missing from this scan."
+                    )
                     break
 
                 await asyncio.sleep(self.rate_delay)
@@ -167,31 +217,172 @@ class NVDClient:
 
         return cves
 
+    # Version applicability verdicts (see _version_verdict).
+    VERSION_IN_RANGE = "in_range"
+    VERSION_OUT_OF_RANGE = "out_of_range"
+    VERSION_UNDETERMINED = "undetermined"
+
+    def _apply_version_matching(
+        self,
+        cves: list[CVEEntry],
+        vendor: str,
+        product: str,
+        version: str,
+        *,
+        from_keyword: bool,
+    ) -> list[CVEEntry]:
+        """Version-check candidate CVEs and annotate each with how it matched.
+
+        - IN_RANGE  -> confirmed CPE-applicability match (match_method="cpe",
+          version_checked=True).
+        - OUT_OF_RANGE -> dropped: right product, but the asset's version is outside
+          every vulnerable range (a version-blind false positive).
+        - UNDETERMINED -> no usable applicability data. Kept as unverified:
+          match_method="keyword" (keyword fallback, and only if the description names
+          the product) or an unverified "cpe" (exact query with no configurations).
+        """
+        product_kw = build_keyword_query(product)
+        kept: list[CVEEntry] = []
+        dropped = 0
+
+        for cve in cves:
+            verdict = self._version_verdict(cve, vendor, product, version)
+            if verdict == self.VERSION_IN_RANGE:
+                cve.match_method = "cpe"
+                cve.version_checked = True
+                kept.append(cve)
+            elif verdict == self.VERSION_OUT_OF_RANGE:
+                dropped += 1
+            elif from_keyword:
+                # Tightened post-filter: require the PRODUCT token in the description.
+                # A vendor-only mention is too loose and lets every product from a
+                # vendor through, which is what inflated the false-positive count.
+                if self._mentions_product(cve, product_kw):
+                    cve.match_method = "keyword"
+                    cve.version_checked = False
+                    kept.append(cve)
+            else:
+                # Exact cpeName query associated this CVE with the CPE, but the response
+                # carried no applicability data we could version-check client-side.
+                cve.match_method = "cpe"
+                cve.version_checked = False
+                kept.append(cve)
+
+        if dropped:
+            logger.info(
+                f"Dropped {dropped} version-irrelevant CVE(s) for {product_kw} {version} "
+                f"(product matched but version out of range)."
+            )
+        return kept[:KEYWORD_MAX_RESULTS]
+
+    @staticmethod
+    def _mentions_product(cve: CVEEntry, product_kw: str) -> bool:
+        """True if the CVE description names every token of the product keyword.
+
+        Compared with spacing/punctuation removed so "ControlLogix 5580" in prose
+        matches the "controllogix 5580" product token.
+        """
+        desc = _normalize(cve.description)
+        words = [_normalize(w) for w in product_kw.split() if w.strip()]
+        return bool(words) and all(w and w in desc for w in words)
+
+    @classmethod
+    def _version_verdict(
+        cls, cve: CVEEntry, vendor: str, product: str, version: str
+    ) -> str:
+        """Decide whether `version` of vendor/product is affected, using CPE applicability.
+
+        Walks the CVE's configurations[].nodes[].cpeMatch[] for entries whose criteria
+        name the same product (and vendor, when both are known) and checks the asset's
+        version against versionStart/End bounds (or an explicit version). Returns
+        VERSION_IN_RANGE, VERSION_OUT_OF_RANGE, or VERSION_UNDETERMINED.
+        """
+        product_norm = _normalize(product)
+        vendor_norm = _normalize(vendor)
+        matched_product = False
+        compared = False
+
+        for match in cls._iter_cpe_matches(cve.configurations):
+            if not match.get("vulnerable", False):
+                continue
+            c_vendor, c_product, c_version = parse_cpe_keywords(match.get("criteria", ""))
+            if not product_norm or _normalize(c_product) != product_norm:
+                continue
+            c_vendor_norm = _normalize(c_vendor)
+            if vendor_norm and c_vendor_norm and c_vendor_norm != vendor_norm:
+                continue
+            matched_product = True
+            if not version:
+                continue  # product matches but we have no asset version to compare
+
+            explicit = c_version if c_version not in ("", "*", "-") else None
+            if explicit is not None:
+                compared = True
+                if compare_versions(version, explicit) == 0:
+                    return cls.VERSION_IN_RANGE
+                continue
+
+            start_incl = match.get("versionStartIncluding")
+            start_excl = match.get("versionStartExcluding")
+            end_incl = match.get("versionEndIncluding")
+            end_excl = match.get("versionEndExcluding")
+            if any(b is not None for b in (start_incl, start_excl, end_incl, end_excl)):
+                compared = True
+                if cls._version_in_bounds(version, start_incl, start_excl, end_incl, end_excl):
+                    return cls.VERSION_IN_RANGE
+            else:
+                # Product matches with an unbounded "*" version: NVD marks every version
+                # of this product vulnerable, so the asset is affected regardless.
+                return cls.VERSION_IN_RANGE
+
+        if matched_product and compared:
+            return cls.VERSION_OUT_OF_RANGE
+        return cls.VERSION_UNDETERMINED
+
+    @staticmethod
+    def _version_in_bounds(
+        version: str,
+        start_incl: str | None,
+        start_excl: str | None,
+        end_incl: str | None,
+        end_excl: str | None,
+    ) -> bool:
+        """True if `version` falls within the (possibly open-ended) NVD version range."""
+        if start_incl is not None and compare_versions(version, start_incl) < 0:
+            return False
+        if start_excl is not None and compare_versions(version, start_excl) <= 0:
+            return False
+        if end_incl is not None and compare_versions(version, end_incl) > 0:
+            return False
+        if end_excl is not None and compare_versions(version, end_excl) >= 0:
+            return False
+        return True
+
+    @staticmethod
+    def _iter_cpe_matches(configurations: list):
+        """Yield every cpeMatch dict in an NVD 2.0 configurations tree (incl. children)."""
+        def walk(node: dict):
+            yield from node.get("cpeMatch", [])
+            for child in node.get("children", []):
+                yield from walk(child)
+
+        for config in configurations or []:
+            for node in config.get("nodes", []):
+                yield from walk(node)
+
     @staticmethod
     def _filter_by_version_relevance(
         cves: list[CVEEntry], vendor: str, product: str, version: str
     ) -> list[CVEEntry]:
-        """Filter keyword search results for version relevance.
+        """Keyword post-filter: keep only CVEs whose description names the PRODUCT.
 
-        Keeps CVEs whose description mentions the vendor+product and
-        whose affected configs likely overlap the target version.
-        This is a heuristic — keyword search is inherently broader than CPE match.
+        This used to keep any CVE that mentioned the vendor OR the product, so a
+        vendor-only mention let every product from that vendor through — the loose
+        filter behind the false positives. It now requires the product token; real
+        version checking happens in query_cpes via CPE applicability (_version_verdict).
         """
-        # Compare with spacing/punctuation removed so that the CPE token
-        # "rockwellautomation" matches "Rockwell Automation" in the description.
-        vendor_norm = _normalize(vendor)
-        product_norm = _normalize(build_keyword_query(product))
-        filtered = []
-
-        for cve in cves:
-            desc = _normalize(cve.description)
-            # Must mention the product or the vendor
-            if not (product_norm and product_norm in desc) and vendor_norm not in desc:
-                continue
-            filtered.append(cve)
-
-        # Cap at 50 to avoid noise from very broad keyword matches
-        return filtered[:50]
+        product_kw = build_keyword_query(product)
+        return [cve for cve in cves if NVDClient._mentions_product(cve, product_kw)][:50]
 
     async def _request_with_retry(
         self, client: httpx.AsyncClient, params: dict
@@ -282,6 +473,8 @@ class NVDClient:
                 last_modified=cve_data.get("lastModified", ""),
                 references=references,
                 weaknesses=weaknesses,
+                # Keep NVD 2.0 CPE applicability so matches can be version-checked.
+                configurations=cve_data.get("configurations", []),
             )
         except (KeyError, IndexError, TypeError) as e:
             logger.warning(f"Failed to parse CVE entry: {e}")

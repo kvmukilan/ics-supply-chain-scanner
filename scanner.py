@@ -85,6 +85,10 @@ class ICSScanner:
                     cve=cve,
                     in_kev=kev_entry is not None,
                     kev_entry=kev_entry,
+                    # Carry how NVD matched this CVE to the asset through to the report
+                    # so confirmed CPE matches can be separated from "possible" ones.
+                    match_method=cve.match_method,
+                    version_checked=cve.version_checked,
                 )
                 self.risk_scorer.score_finding(finding)
                 findings.append(finding)
@@ -93,9 +97,11 @@ class ICSScanner:
         result.total_cves = len(findings)
         result.total_kev_hits = sum(1 for f in findings if f.in_kev)
 
+        confirmed = sum(1 for f in findings if f.version_checked)
         logger.info(
             f"Scored {len(findings)} findings "
-            f"({result.total_kev_hits} in KEV)"
+            f"({confirmed} confirmed, {len(findings) - confirmed} possible/unverified, "
+            f"{result.total_kev_hits} in KEV)"
         )
 
         # Step 5: Generate remediation

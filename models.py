@@ -80,6 +80,14 @@ class CVEEntry:
     affected_versions: list[str] = field(default_factory=list)
     references: list[str] = field(default_factory=list)
     weaknesses: list[str] = field(default_factory=list)  # CWE IDs
+    # Raw NVD 2.0 CPE applicability (configurations[].nodes[].cpeMatch[]). Kept so the
+    # client can version-check the asset against versionStart/End bounds.
+    configurations: list = field(default_factory=list)
+    # How this CVE was associated with the asset and whether a real version comparison
+    # happened. "cpe" = confirmed via CPE applicability with a version check;
+    # "keyword" = description-only fallback (unverified, treated as "possible").
+    match_method: str = "cpe"
+    version_checked: bool = False
 
     @property
     def nvd_url(self) -> str:
@@ -111,10 +119,21 @@ class Finding:
     remediation: str = ""
     iec_62443_mappings: list[str] = field(default_factory=list)
     score_breakdown: dict = field(default_factory=dict)
+    # "cpe" = confirmed CPE-applicability match with a client-side version check;
+    # "keyword" = description-only keyword fallback (unverified / "possible").
+    match_method: str = "cpe"
+    # True only when the asset's version was really compared against the CVE's
+    # affected-version bounds. Keyword/unverified findings stay False.
+    version_checked: bool = False
 
     @property
     def finding_id(self) -> str:
         return f"{self.asset.asset_id or self.asset.name}_{self.cve.cve_id}"
+
+    @property
+    def is_confirmed(self) -> bool:
+        """A confirmed finding had its version verified against CVE applicability data."""
+        return self.version_checked
 
 
 @dataclass
@@ -136,17 +155,32 @@ class ScanResult:
     def high_findings(self) -> list[Finding]:
         return [f for f in self.findings if f.ot_severity == Severity.HIGH]
 
+    @property
+    def confirmed_findings(self) -> list[Finding]:
+        """Findings whose version was verified against CVE applicability data."""
+        return [f for f in self.findings if f.version_checked]
+
+    @property
+    def possible_findings(self) -> list[Finding]:
+        """Unverified (keyword/no-applicability) findings — right product, version unconfirmed."""
+        return [f for f in self.findings if not f.version_checked]
+
     def summary(self) -> dict:
         severity_counts = {}
         for f in self.findings:
             sev = f.ot_severity.value
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        confirmed = self.confirmed_findings
+        possible = self.possible_findings
         return {
             "scan_id": self.scan_id,
             "timestamp": self.timestamp,
             "total_assets": self.total_assets,
             "total_cves_found": self.total_cves,
+            "confirmed_findings": len(confirmed),
+            "possible_findings": len(possible),
             "kev_matches": self.total_kev_hits,
+            "kev_matches_confirmed": sum(1 for f in confirmed if f.in_kev),
             "severity_distribution": severity_counts,
             "top_risk_findings": [
                 {
@@ -154,6 +188,8 @@ class ScanResult:
                     "cve": f.cve.cve_id,
                     "ot_risk_score": round(f.ot_risk_score, 2),
                     "in_kev": f.in_kev,
+                    "match_method": f.match_method,
+                    "version_checked": f.version_checked,
                 }
                 for f in sorted(self.findings, key=lambda x: x.ot_risk_score, reverse=True)[:10]
             ],
