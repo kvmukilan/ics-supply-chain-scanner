@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: ics-supply-chain-scanner
+type: software
+authors:
+  - given-names: Karmukilan
+    family-names: V
+url: "https://github.com/kvmukilan/ics-supply-chain-scanner"
+repository-code: "https://github.com/kvmukilan/ics-supply-chain-scanner"
+license: MIT
+version: 1.0.0
+abstract: >-
+  ICS/OT supply chain vulnerability scanner: matches asset inventories and SBOMs
+  against NVD CVEs and the CISA KEV catalog, scores findings by Purdue level,
+  exposure and patchability, and maps remediation to IEC 62443.
+keywords:
+  - ics
+  - ot-security
+  - vulnerability-management
+  - sbom
+  - iec-62443
+  - cisa-kev
