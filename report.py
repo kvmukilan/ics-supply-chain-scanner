@@ -31,6 +31,7 @@ def generate_json_report(result: ScanResult, output_path: str) -> str:
         finding_data = {
             "finding_id": f.finding_id,
             "asset": {
+                "asset_id": f.asset.asset_id,
                 "name": f.asset.name,
                 "vendor": f.asset.vendor,
                 "model": f.asset.model,
