@@ -6,9 +6,11 @@ and a current scan. Useful for trending dashboards and compliance reporting.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
-from models import Finding, ScanResult, Severity
+from models import Asset, CVEEntry, Finding, ScanResult, Severity
 
 
 @dataclass
@@ -139,3 +141,69 @@ def compare_scans(baseline: ScanResult, current: ScanResult, score_threshold: fl
     diff.score_changes.sort(key=lambda d: -abs(d.new_ot_score - d.old_ot_score))
 
     return diff
+
+
+def report_to_scan_result(report: dict) -> ScanResult:
+    """Rebuild a ScanResult from a JSON report produced by report.generate_json_report.
+
+    Only the fields needed for diffing are restored. Each finding keeps the
+    finding_id it had in the original scan, so a report can be diffed against
+    a fresh scan of the same inventory.
+    """
+    meta = report.get("metadata", {})
+    result = ScanResult(
+        scan_id=meta.get("scan_id", "UNKNOWN"),
+        total_assets=meta.get("total_assets", 0),
+        total_cves=meta.get("total_cves_found", 0),
+    )
+
+    for fd in report.get("findings", []):
+        asset_d = fd.get("asset", {})
+        vuln_d = fd.get("vulnerability", {})
+        risk_d = fd.get("risk_assessment", {})
+        cve_id = vuln_d.get("cve_id", "")
+
+        # finding_id is "<asset_id or name>_<cve_id>". Older reports have no
+        # asset.asset_id, so recover it from the stored finding_id.
+        asset_id = asset_d.get("asset_id", "")
+        stored_id = fd.get("finding_id", "")
+        suffix = f"_{cve_id}"
+        if not asset_id and stored_id.endswith(suffix):
+            asset_id = stored_id[: -len(suffix)]
+
+        asset = Asset(
+            name=asset_d.get("name", ""),
+            vendor=asset_d.get("vendor", ""),
+            model=asset_d.get("model", ""),
+            firmware_version=asset_d.get("firmware", ""),
+            cpe=asset_d.get("cpe", ""),
+            purdue_level=float(asset_d.get("purdue_level", 3)),
+            network_zone=asset_d.get("network_zone", "unknown"),
+            exposure=asset_d.get("exposure", "isolated"),
+            patch_status=asset_d.get("patch_status", "available"),
+            asset_id=asset_id,
+        )
+        cve = CVEEntry(
+            cve_id=cve_id,
+            description=vuln_d.get("description", ""),
+            cvss_base_score=float(vuln_d.get("cvss_base", 0)),
+            cvss_vector=vuln_d.get("cvss_vector", ""),
+            severity=Severity(vuln_d.get("severity", "NONE")),
+            published="",
+            last_modified="",
+        )
+        result.findings.append(Finding(
+            asset=asset,
+            cve=cve,
+            in_kev=risk_d.get("in_kev", False),
+            ot_risk_score=float(risk_d.get("ot_risk_score", 0)),
+            ot_severity=Severity(risk_d.get("ot_severity", "NONE")),
+        ))
+
+    return result
+
+
+def load_report(path: str | Path) -> ScanResult:
+    """Load a JSON scan report from disk as a ScanResult (see report_to_scan_result)."""
+    with open(path, encoding="utf-8") as f:
+        return report_to_scan_result(json.load(f))

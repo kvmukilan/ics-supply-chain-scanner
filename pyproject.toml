@@ -21,10 +21,9 @@ ics-scanner = "main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"
-markers = [
-    "slow: marks tests that make network calls",
-]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 110
@@ -32,3 +31,13 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's File()/Query()/Depends() defaults are declarative parameter markers that
+# FastAPI evaluates per request, not mutable shared defaults, so B008 doesn't apply to them.
+extend-immutable-calls = ["fastapi.File", "fastapi.Query", "fastapi.Depends", "fastapi.Form"]
+
+[tool.ruff.lint.per-file-ignores]
+# report.py builds the HTML report from inline HTML/CSS f-string templates; wrapping
+# markup at 110 columns would split tags mid-attribute and make the templates harder to read.
+"report.py" = ["E501"]

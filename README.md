@@ -1,6 +1,10 @@
 # ICS Supply Chain Vulnerability Scanner
 
-Automated OT vulnerability assessment pipeline: asset inventory → NVD CVE lookup → CISA KEV cross-reference → OT-specific risk scoring → IEC 62443-mapped remediation.
+[![CI](https://github.com/kvmukilan/ics-supply-chain-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/kvmukilan/ics-supply-chain-scanner/actions/workflows/ci.yml)
+
+Turns an OT asset inventory or SBOM into a prioritised, IEC 62443-mapped vulnerability report, scoring each CVE by Purdue level, network exposure, patchability and CISA KEV status.
+
+Pipeline: asset inventory / SBOM → NVD CVE lookup → CISA KEV cross-reference → OT-specific risk scoring → IEC 62443-mapped remediation → JSON / HTML / CSV / SARIF reports.
 
 ## Architecture
 
@@ -38,26 +42,41 @@ Asset Inventory (CSV/JSON)
                   JSON + HTML Reports
 ```
 
-## Quick Start
+## Quickstart
+
+No API keys needed. `--no-llm` uses the built-in IEC 62443 remediation templates instead of Azure OpenAI:
 
 ```bash
-# Setup
-cp .env.example .env  # Configure API keys
 pip install -r requirements.txt
+python main.py -i sample_inventory.csv --validate        # offline: check CPEs and Purdue levels
+python main.py -i sample_inventory.csv --no-llm --sarif  # full scan, reports written to output/
+```
 
-# Run scan
-python main.py -i sample_inventory.csv
+The scan itself calls the public NVD and CISA KEV APIs. Without an `NVD_API_KEY`, NVD allows 5 requests per 30 s, so the 10-asset sample takes a few minutes. Copy `.env.example` to `.env` to set keys.
 
-# With options
-python main.py -i inventory.csv -o reports/ --log-level DEBUG
-python main.py -i inventory.json --no-llm  # Template remediation only
+More options:
+
+```bash
+python main.py -i sample_sbom_cyclonedx.json --no-llm      # scan a CycloneDX SBOM
+python main.py -i sample_inventory.csv --no-llm --gate      # exit 2 on critical/KEV findings (CI gate)
+python main.py -i sample_inventory.csv --no-llm --diff output/<previous>_report.json
+python main.py -i my_assets.csv -o reports/ --log-level DEBUG
+```
+
+## Tests
+
+```bash
+python -m pytest        # offline: NVD/KEV responses are recorded fixtures in tests/fixtures/
+python -m ruff check .
 ```
 
 ## Asset Inventory Format
 
 **CSV** — See `sample_inventory.csv`. Required columns: `name`, `vendor`, `model`, `firmware_version`, `cpe`, `purdue_level`. Optional: `network_zone`, `exposure`, `patch_status`, `location`, `asset_id`.
 
-**JSON** — See `sample_inventory.json`. Same fields, wrapped in `{"assets": [...]}`.
+**JSON** — Same fields as the CSV, as a list of objects or wrapped in `{"assets": [...]}`.
+
+**SBOM** — CycloneDX JSON (see `sample_sbom_cyclonedx.json`; OT context comes from component `properties` such as `purdue_level` and `exposure`) or SPDX JSON.
 
 ### CPE Strings
 
@@ -97,6 +116,9 @@ Reports go to `output/` (configurable via `-o`):
 
 - **JSON**: Machine-readable with full finding details, score breakdowns, remediation playbooks
 - **HTML**: Dashboard view with severity stats, expandable remediation, NVD links
+- **CSV**: One row per finding, for spreadsheets (written unless `--json-only`)
+- **SARIF 2.1.0**: For GitHub code scanning / Azure DevOps (written unless `--json-only`, or with `--sarif`)
+- **Markdown**: With `--markdown`
 
 ## API Keys
 
@@ -133,7 +155,9 @@ Reports go to `output/` (configurable via `-o`):
 ├── rate_limiter.py    # API rate limiting middleware
 ├── patch_priority.py  # Patch prioritisation queue calculator
 ├── validators.py      # CPE and Purdue level validators
+├── tests/             # Offline pytest suite + recorded NVD/KEV fixtures
 ├── requirements.txt
 ├── .env.example
-└── sample_inventory.csv
+├── sample_inventory.csv
+└── sample_sbom_cyclonedx.json
 ```

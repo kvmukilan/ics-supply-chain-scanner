@@ -49,4 +49,4 @@ install: ## Install all dependencies
 	pip install -r requirements.txt
 
 install-dev: ## Install with dev dependencies
-	pip install -r requirements.txt && pip install ruff coverage
+	pip install -r requirements.txt && pip install "ruff==0.16.10" coverage

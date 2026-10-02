@@ -9,7 +9,6 @@ deployments that don't meet OT security standards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from models import ScanResult, Severity
 
@@ -67,7 +66,7 @@ _POSTURE_RANK = {"compliant": 3, "at_risk": 2, "non_compliant": 1}
 
 def evaluate(
     result: ScanResult,
-    policy: Optional[GatePolicy] = None,
+    policy: GatePolicy | None = None,
     compliance_posture: str = "",
 ) -> GateResult:
     """Evaluate scan results against a quality gate policy.
@@ -152,7 +151,10 @@ def evaluate(
         if actual_rank < required_rank:
             violations.append(GateViolation(
                 rule="min_compliance_posture",
-                message=f"Compliance posture '{compliance_posture}' does not meet minimum '{policy.min_compliance_posture}'",
+                message=(
+                    f"Compliance posture '{compliance_posture}' does not meet "
+                    f"minimum '{policy.min_compliance_posture}'"
+                ),
                 actual=compliance_posture,
                 threshold=policy.min_compliance_posture,
             ))

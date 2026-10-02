@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 
 class Severity(str, Enum):
@@ -16,7 +15,7 @@ class Severity(str, Enum):
     NONE = "NONE"
 
     @classmethod
-    def from_cvss(cls, score: float) -> "Severity":
+    def from_cvss(cls, score: float) -> Severity:
         if score >= 9.0:
             return cls.CRITICAL
         elif score >= 7.0:
@@ -57,7 +56,7 @@ class Asset:
     patch_status: PatchStatus = PatchStatus.AVAILABLE
     location: str = ""
     asset_id: str = ""
-    last_patched: Optional[str] = None
+    last_patched: str | None = None
     notes: str = ""
 
     def __post_init__(self):
@@ -106,7 +105,7 @@ class Finding:
     asset: Asset
     cve: CVEEntry
     in_kev: bool = False
-    kev_entry: Optional[KEVEntry] = None
+    kev_entry: KEVEntry | None = None
     ot_risk_score: float = 0.0
     ot_severity: Severity = Severity.NONE
     remediation: str = ""

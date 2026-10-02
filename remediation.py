@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Optional
 
 from config import AzureOpenAIConfig
 from models import Finding
@@ -57,9 +56,9 @@ def _build_langchain_chain(config: AzureOpenAIConfig):
     Uses AzureChatOpenAI with a structured prompt template and
     JsonOutputParser for reliable JSON extraction.
     """
-    from langchain_openai import AzureChatOpenAI
-    from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import JsonOutputParser
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_openai import AzureChatOpenAI
 
     llm = AzureChatOpenAI(
         azure_endpoint=config.endpoint,

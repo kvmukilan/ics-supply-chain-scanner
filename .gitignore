@@ -16,3 +16,4 @@ output/
 htmlcov/
 .coverage
 .DS_Store
+.venv/

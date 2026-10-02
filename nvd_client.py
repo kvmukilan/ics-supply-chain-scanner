@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from typing import Optional
 
 import httpx
 
@@ -32,6 +31,39 @@ def parse_cpe_keywords(cpe_string: str) -> tuple[str, str, str]:
         version = parts[5] if parts[5] not in ("*", "-") else ""
         return vendor, product, version
     return "", "", ""
+
+
+def _normalize(text: str) -> str:
+    """Lower-case and drop everything but letters/digits ("ControlLogix 5580" -> "controllogix5580")."""
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def build_keyword_query(product: str) -> str:
+    """Build an NVD keywordSearch string for a CPE product.
+
+    NVD ANDs every keyword against the CVE description. CPE vendor tokens are
+    concatenated identifiers ("rockwellautomation", "schneiderelectric") that
+    never appear in prose, and the "_firmware" suffix on firmware CPEs is
+    rarely in the text either, so including them makes the fallback return
+    nothing. Search on the product words alone and filter results afterwards.
+    """
+    return " ".join(w for w in product.split() if w.lower() != "firmware")
+
+
+def build_keyword_queries(vendor: str, product: str) -> list[str]:
+    """Keyword searches to try, most specific first.
+
+    "<vendor> <product>" works when the vendor token is a real word ("siemens",
+    "osisoft"); concatenated tokens ("rockwellautomation") never match, so fall
+    back to the product words alone.
+    """
+    product_kw = build_keyword_query(product)
+    queries = [f"{vendor} {product_kw}".strip(), product_kw]
+    return [q for i, q in enumerate(queries) if q and q not in queries[:i]]
+
+
+# Keyword search can match thousands of CVEs ("pi server"); don't page through them all.
+KEYWORD_MAX_RESULTS = 100
 
 
 class NVDClient:
@@ -71,13 +103,19 @@ class NVDClient:
                 logger.info(f"Found 0 CVEs for {cpe_string} (no fallback keywords)")
                 return []
 
-            keyword = f"{vendor} {product}"
-            logger.info(f"Exact CPE match returned 0 results. Falling back to keywordSearch: '{keyword}'")
-
-            await asyncio.sleep(self.rate_delay)
-            cves = await self._paginated_query(
-                client, {"keywordSearch": keyword, "resultsPerPage": 50}
-            )
+            cves = []
+            for keyword in build_keyword_queries(vendor, product):
+                logger.info(
+                    f"No CVEs yet for {cpe_string}. Falling back to keywordSearch: '{keyword}'"
+                )
+                await asyncio.sleep(self.rate_delay)
+                cves = await self._paginated_query(
+                    client,
+                    {"keywordSearch": keyword, "resultsPerPage": 50},
+                    max_results=KEYWORD_MAX_RESULTS,
+                )
+                if cves:
+                    break
 
             # Filter by version if available — keyword search is broad
             if version and cves:
@@ -91,9 +129,9 @@ class NVDClient:
             return cves
 
     async def _paginated_query(
-        self, client: httpx.AsyncClient, base_params: dict
+        self, client: httpx.AsyncClient, base_params: dict, max_results: int | None = None
     ) -> list[CVEEntry]:
-        """Run a paginated NVD query."""
+        """Run a paginated NVD query, stopping early once max_results CVEs are collected."""
         cves = []
         start_index = 0
 
@@ -118,6 +156,8 @@ class NVDClient:
                 start_index += len(vulnerabilities)
                 if start_index >= total:
                     break
+                if max_results is not None and len(cves) >= max_results:
+                    break
 
                 await asyncio.sleep(self.rate_delay)
 
@@ -137,14 +177,16 @@ class NVDClient:
         whose affected configs likely overlap the target version.
         This is a heuristic — keyword search is inherently broader than CPE match.
         """
-        vendor_lower = vendor.lower()
-        product_lower = product.lower()
+        # Compare with spacing/punctuation removed so that the CPE token
+        # "rockwellautomation" matches "Rockwell Automation" in the description.
+        vendor_norm = _normalize(vendor)
+        product_norm = _normalize(build_keyword_query(product))
         filtered = []
 
         for cve in cves:
-            desc = cve.description.lower()
-            # Must mention the product
-            if product_lower not in desc and vendor_lower not in desc:
+            desc = _normalize(cve.description)
+            # Must mention the product or the vendor
+            if not (product_norm and product_norm in desc) and vendor_norm not in desc:
                 continue
             filtered.append(cve)
 
@@ -153,7 +195,7 @@ class NVDClient:
 
     async def _request_with_retry(
         self, client: httpx.AsyncClient, params: dict
-    ) -> Optional[httpx.Response]:
+    ) -> httpx.Response | None:
         """Make request with retry logic for rate limits and transient errors."""
         for attempt in range(self.config.max_retries):
             try:
@@ -186,7 +228,7 @@ class NVDClient:
         return None
 
     @staticmethod
-    def _parse_cve(vuln_data: dict) -> Optional[CVEEntry]:
+    def _parse_cve(vuln_data: dict) -> CVEEntry | None:
         """Parse a single CVE entry from NVD response."""
         try:
             cve_data = vuln_data.get("cve", {})
@@ -221,12 +263,14 @@ class NVDClient:
                 ref.get("url", "") for ref in cve_data.get("references", [])[:5]
             ]
 
-            # Extract CWE IDs
+            # Extract CWE IDs. NVD often lists the same CWE twice (Primary from NVD,
+            # Secondary from the CNA), so de-duplicate while keeping order.
             weaknesses = []
             for weakness in cve_data.get("weaknesses", []):
                 for desc in weakness.get("description", []):
-                    if desc.get("value", "").startswith("CWE-"):
-                        weaknesses.append(desc["value"])
+                    value = desc.get("value", "")
+                    if value.startswith("CWE-") and value not in weaknesses:
+                        weaknesses.append(value)
 
             return CVEEntry(
                 cve_id=cve_id,
