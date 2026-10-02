@@ -22,7 +22,7 @@ def parse_sbom(filepath: str | Path) -> list[Asset]:
     if not filepath.exists():
         raise FileNotFoundError(f"SBOM file not found: {filepath}")
 
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # Detect format

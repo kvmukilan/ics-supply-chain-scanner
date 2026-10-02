@@ -373,7 +373,7 @@ def main():
                 out_path = f"output/{result.scan_id}_report.json"
                 Path("output").mkdir(exist_ok=True)
                 generate_json_report(result, out_path)
-                with open(out_path) as f:
+                with open(out_path, encoding="utf-8") as f:
                     st.download_button("Download JSON", f.read(), file_name=f"{result.scan_id}_report.json")
 
         with ecol2:
@@ -382,7 +382,7 @@ def main():
                 out_path = f"output/{result.scan_id}_report.html"
                 Path("output").mkdir(exist_ok=True)
                 generate_html_report(result, out_path)
-                with open(out_path) as f:
+                with open(out_path, encoding="utf-8") as f:
                     st.download_button("Download HTML", f.read(), file_name=f"{result.scan_id}_report.html")
 
         if result.errors:

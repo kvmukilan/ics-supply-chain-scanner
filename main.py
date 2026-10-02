@@ -311,7 +311,7 @@ def _run_diff(baseline_path: str, current_result, logger) -> None:
         return
 
     try:
-        with open(baseline_file) as f:
+        with open(baseline_file, encoding="utf-8") as f:
             baseline_data = json.load(f)
 
         # Reconstruct a minimal ScanResult from the JSON report metadata

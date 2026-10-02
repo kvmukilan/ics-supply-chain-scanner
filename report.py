@@ -76,7 +76,7 @@ def generate_json_report(result: ScanResult, output_path: str) -> str:
 
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
 
     logger.info(f"JSON report saved to {path}")
@@ -237,7 +237,7 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
 
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(html)
 
     logger.info(f"HTML report saved to {path}")

@@ -73,7 +73,7 @@ def generate_sarif_report(result: ScanResult, output_path: str) -> str:
 
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(sarif, f, indent=2)
 
     logger.info(f"SARIF report saved to {path}")

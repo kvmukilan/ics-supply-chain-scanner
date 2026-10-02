@@ -50,7 +50,7 @@ class KEVClient:
             return None
 
         try:
-            with open(cache_path, "r") as f:
+            with open(cache_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return self._parse_catalog(data)
         except (json.JSONDecodeError, KeyError) as e:
@@ -81,7 +81,7 @@ class KEVClient:
             cache_path = Path(self.config.cache_path)
             if cache_path.exists():
                 logger.info("Using stale KEV cache as fallback")
-                with open(cache_path, "r") as f:
+                with open(cache_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self._catalog = self._parse_catalog(data)
                 self._loaded = True
@@ -90,7 +90,7 @@ class KEVClient:
         """Save raw catalog to local cache."""
         cache_path = Path(self.config.cache_path)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_path, "w") as f:
+        with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(data, f)
         logger.debug(f"KEV catalog cached at {cache_path}")
 
