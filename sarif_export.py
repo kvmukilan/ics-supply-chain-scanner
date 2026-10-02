@@ -43,7 +43,7 @@ def generate_sarif_report(result: ScanResult, output_path: str) -> str:
                     "driver": {
                         "name": "ICS Supply Chain Vulnerability Scanner",
                         "version": "1.0.0",
-                        "informationUri": "https://github.com/karmukilan/ics-supply-chain-scanner",
+                        "informationUri": "https://github.com/kvmukilan/ics-supply-chain-scanner",
                         "rules": rules,
                     }
                 },
@@ -103,6 +103,8 @@ def _build_rules(findings: list[Finding]) -> list[dict]:
             "helpUri": f.cve.nvd_url,
             "properties": {
                 "tags": _build_tags(f),
+                # GitHub code scanning reads this to rank security alerts
+                "security-severity": f"{f.cve.cvss_base_score:.1f}",
                 "cvss_base_score": f.cve.cvss_base_score,
                 "cvss_vector": f.cve.cvss_vector,
             },
