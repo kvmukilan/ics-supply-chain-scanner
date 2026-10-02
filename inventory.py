@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 
 from models import Asset
-from validators import validate_cpe
+from validators import validate_cpe, validate_purdue_level
 
 logger = logging.getLogger(__name__)
 
@@ -64,26 +64,46 @@ def parse_csv(filepath: str | Path) -> list[Asset]:
                 f"Available: {headers}. Accepted aliases: {COLUMN_ALIASES}"
             )
 
+        def cell(row: dict, field_name: str, default: str = "") -> str:
+            """Return a stripped cell value, or `default` if the column or value is absent.
+
+            Short rows come back from DictReader with None for the missing cells, and
+            optional columns are often left blank; both fall back to the default.
+            """
+            column = col_map.get(field_name)
+            value = row.get(column) if column else None
+            if value is None or not value.strip():
+                return default
+            return value.strip()
+
         for i, row in enumerate(reader, start=2):
             try:
+                for req in required:
+                    if not cell(row, req):
+                        raise ValueError(f"missing value for required column '{col_map[req]}'")
                 asset = Asset(
-                    name=row[col_map["name"]].strip(),
-                    vendor=row[col_map["vendor"]].strip(),
-                    model=row[col_map["model"]].strip(),
-                    firmware_version=row[col_map["firmware_version"]].strip(),
-                    cpe=row[col_map["cpe"]].strip(),
-                    purdue_level=float(row[col_map["purdue_level"]].strip()),
-                    network_zone=row.get(col_map.get("network_zone", ""), "unknown").strip(),
-                    exposure=row.get(col_map.get("exposure", ""), "isolated").strip().lower(),
-                    patch_status=row.get(col_map.get("patch_status", ""), "available").strip().lower(),
-                    location=row.get(col_map.get("location", ""), "").strip(),
-                    asset_id=row.get(col_map.get("asset_id", ""), f"ASSET-{i:04d}").strip(),
-                    last_patched=row.get(col_map.get("last_patched", ""), None),
-                    notes=row.get(col_map.get("notes", ""), "").strip(),
+                    name=cell(row, "name"),
+                    vendor=cell(row, "vendor"),
+                    model=cell(row, "model"),
+                    firmware_version=cell(row, "firmware_version"),
+                    cpe=cell(row, "cpe"),
+                    purdue_level=float(cell(row, "purdue_level")),
+                    network_zone=cell(row, "network_zone", "unknown"),
+                    exposure=cell(row, "exposure", "isolated").lower(),
+                    patch_status=cell(row, "patch_status", "available").lower(),
+                    location=cell(row, "location"),
+                    # i is the 1-based file line (header is line 1), so i - 1 is the
+                    # data row number; this matches parse_json's ASSET-0001 numbering.
+                    asset_id=cell(row, "asset_id", f"ASSET-{i - 1:04d}"),
+                    last_patched=cell(row, "last_patched") or None,
+                    notes=cell(row, "notes"),
                 )
                 cpe_valid, cpe_err = validate_cpe(asset.cpe)
                 if not cpe_valid:
                     logger.warning(f"Row {i} ({asset.name}): invalid CPE — {cpe_err}")
+                purdue_valid, purdue_err = validate_purdue_level(asset.purdue_level)
+                if not purdue_valid:
+                    logger.warning(f"Row {i} ({asset.name}): {purdue_err}")
                 assets.append(asset)
             except (ValueError, KeyError) as e:
                 logger.warning(f"Skipping row {i}: {e}")
