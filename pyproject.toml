@@ -21,10 +21,9 @@ ics-scanner = "main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"
-markers = [
-    "slow: marks tests that make network calls",
-]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 110
