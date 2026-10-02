@@ -348,15 +348,12 @@ class NVDClient:
         end_excl: str | None,
     ) -> bool:
         """True if `version` falls within the (possibly open-ended) NVD version range."""
-        if start_incl is not None and compare_versions(version, start_incl) < 0:
-            return False
-        if start_excl is not None and compare_versions(version, start_excl) <= 0:
-            return False
-        if end_incl is not None and compare_versions(version, end_incl) > 0:
-            return False
-        if end_excl is not None and compare_versions(version, end_excl) >= 0:
-            return False
-        return True
+        return (
+            (start_incl is None or compare_versions(version, start_incl) >= 0)
+            and (start_excl is None or compare_versions(version, start_excl) > 0)
+            and (end_incl is None or compare_versions(version, end_incl) <= 0)
+            and (end_excl is None or compare_versions(version, end_excl) < 0)
+        )
 
     @staticmethod
     def _iter_cpe_matches(configurations: list):

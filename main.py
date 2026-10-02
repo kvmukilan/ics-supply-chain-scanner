@@ -237,7 +237,7 @@ async def main() -> int:
     print(f"Assets scanned:  {summary['total_assets']}")
     print(f"Findings found:  {summary['total_cves_found']}")
     print(f"  Confirmed:     {summary['confirmed_findings']} (CPE applicability, version-checked)")
-    print(f"  Possible:      {summary['possible_findings']} (keyword/unverified — right product, version unconfirmed)")
+    print(f"  Possible:      {summary['possible_findings']} (keyword/unverified — version unconfirmed)")
     print(f"CISA KEV hits:   {summary['kev_matches']} ({summary['kev_matches_confirmed']} confirmed)")
     print(f"Severity dist:   {json.dumps(summary['severity_distribution'])}")
     if summary["top_risk_findings"]:
