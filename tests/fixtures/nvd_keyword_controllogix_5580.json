@@ -1,0 +1,579 @@
+{
+  "resultsPerPage": 4,
+  "startIndex": 0,
+  "totalResults": 4,
+  "format": "NVD_CVE",
+  "version": "2.0",
+  "timestamp": "2026-10-02T18:35:05.907",
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2017-6024",
+        "sourceIdentifier": "ics-cert@hq.dhs.gov",
+        "published": "2017-05-06T00:29:00.163",
+        "lastModified": "2026-06-17T01:21:38.863",
+        "vulnStatus": "Modified",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A Resource Exhaustion issue was discovered in Rockwell Automation ControlLogix 5580 controllers V28.011, V28.012, and V28.013; ControlLogix 5580 controllers V29.011; CompactLogix 5380 controllers V28.011; and CompactLogix 5380 controllers V29.011. This vulnerability may allow an attacker to cause a denial of service condition by sending a series of specific CIP-based commands to the controller."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 5.9,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "HIGH",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            }
+          ],
+          "cvssMetricV2": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "2.0",
+                "vectorString": "AV:N/AC:M/Au:N/C:N/I:N/A:C",
+                "baseScore": 7.1,
+                "accessVector": "NETWORK",
+                "accessComplexity": "MEDIUM",
+                "authentication": "NONE",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "COMPLETE"
+              },
+              "baseSeverity": "HIGH",
+              "exploitabilityScore": 8.6,
+              "impactScore": 6.9,
+              "acInsufInfo": false,
+              "obtainAllPrivilege": false,
+              "obtainUserPrivilege": false,
+              "obtainOtherPrivilege": false,
+              "userInteractionRequired": false
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "ics-cert@hq.dhs.gov",
+            "type": "Secondary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-400"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-400"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "http://www.securityfocus.com/bid/98309",
+            "source": "ics-cert@hq.dhs.gov",
+            "tags": [
+              "Third Party Advisory",
+              "VDB Entry"
+            ]
+          },
+          {
+            "url": "https://ics-cert.us-cert.gov/advisories/ICSA-17-094-05",
+            "source": "ics-cert@hq.dhs.gov",
+            "tags": [
+              "Third Party Advisory",
+              "US Government Resource"
+            ]
+          },
+          {
+            "url": "http://www.securityfocus.com/bid/98309",
+            "source": "af854a3a-2127-422b-91ae-364da2661108",
+            "tags": [
+              "Third Party Advisory",
+              "VDB Entry"
+            ]
+          },
+          {
+            "url": "https://ics-cert.us-cert.gov/advisories/ICSA-17-094-05",
+            "source": "af854a3a-2127-422b-91ae-364da2661108",
+            "tags": [
+              "Third Party Advisory",
+              "US Government Resource"
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2021-22681",
+        "sourceIdentifier": "ics-cert@hq.dhs.gov",
+        "published": "2021-03-03T18:15:14.643",
+        "lastModified": "2026-06-17T03:37:34.183",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "Rockwell Automation Studio 5000 Logix Designer Versions 21 and later, and RSLogix 5000 Versions 16 through 20 use a key to verify Logix controllers are communicating with Rockwell Automation CompactLogix 1768, 1769, 5370, 5380, 5480: ControlLogix 5550, 5560, 5570, 5580; DriveLogix 5560, 5730, 1794-L34; Compact GuardLogix 5370, 5380; GuardLogix 5570, 5580; SoftLogix 5800. Rockwell Automation Studio 5000 Logix Designer Versions 21 and later and RSLogix 5000: Versions 16 through 20 are vulnerable because an unauthenticated attacker could bypass this verification mechanism and authenticate with Rockwell Automation CompactLogix 1768, 1769, 5370, 5380, 5480: ControlLogix 5550, 5560, 5570, 5580; DriveLogix 5560, 5730, 1794-L34; Compact GuardLogix 5370, 5380; GuardLogix 5570, 5580; SoftLogix 5800."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            },
+            {
+              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            }
+          ],
+          "cvssMetricV2": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "2.0",
+                "vectorString": "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+                "baseScore": 7.5,
+                "accessVector": "NETWORK",
+                "accessComplexity": "LOW",
+                "authentication": "NONE",
+                "confidentialityImpact": "PARTIAL",
+                "integrityImpact": "PARTIAL",
+                "availabilityImpact": "PARTIAL"
+              },
+              "baseSeverity": "HIGH",
+              "exploitabilityScore": 10.0,
+              "impactScore": 6.4,
+              "acInsufInfo": false,
+              "obtainAllPrivilege": false,
+              "obtainUserPrivilege": false,
+              "obtainOtherPrivilege": false,
+              "userInteractionRequired": false
+            }
+          ],
+          "ssvcV203": [
+            {
+              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+              "ssvcData": {
+                "timestamp": "2026-03-05T00:00:00+00:00",
+                "id": "CVE-2021-22681",
+                "options": [
+                  {
+                    "exploitation": "active"
+                  },
+                  {
+                    "automatable": "yes"
+                  },
+                  {
+                    "technicalImpact": "total"
+                  }
+                ],
+                "role": "CISA Coordinator",
+                "version": "2.0.3"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "ics-cert@hq.dhs.gov",
+            "type": "Secondary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-522"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-522"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://us-cert.cisa.gov/ics/advisories/icsa-21-056-03",
+            "source": "ics-cert@hq.dhs.gov",
+            "tags": [
+              "Third Party Advisory",
+              "US Government Resource"
+            ]
+          },
+          {
+            "url": "https://us-cert.cisa.gov/ics/advisories/icsa-21-056-03",
+            "source": "af854a3a-2127-422b-91ae-364da2661108",
+            "tags": [
+              "Third Party Advisory",
+              "US Government Resource"
+            ]
+          },
+          {
+            "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2021-22681",
+            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+            "tags": [
+              "US Government Resource"
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2024-3493",
+        "sourceIdentifier": "PSIRT@rockwellautomation.com",
+        "published": "2024-04-15T22:15:09.073",
+        "lastModified": "2026-06-17T07:44:22.820",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "\nA specific malformed fragmented packet type (fragmented packets may be generated automatically by devices that send large amounts of data) can cause a major nonrecoverable fault (MNRF) Rockwell Automation's ControlLogix 5580, Guard Logix\u00a05580,\u00a0CompactLogix 5380,\u00a0and 1756-EN4TR. If exploited, the affected product will become unavailable and require a manual restart to recover it. Additionally, an MNRF could result in a loss of view and/or control of connected devices. \n\n"
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "PSIRT@rockwellautomation.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:N/A:H",
+                "baseScore": 8.6,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "CHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 4.0
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ],
+          "ssvcV203": [
+            {
+              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+              "ssvcData": {
+                "timestamp": "2024-08-12T15:09:28.736089Z",
+                "id": "CVE-2024-3493",
+                "options": [
+                  {
+                    "exploitation": "none"
+                  },
+                  {
+                    "automatable": "yes"
+                  },
+                  {
+                    "technicalImpact": "partial"
+                  }
+                ],
+                "role": "CISA Coordinator",
+                "version": "2.0.3"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "PSIRT@rockwellautomation.com",
+            "type": "Secondary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-20"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "NVD-CWE-noinfo"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://www.rockwellautomation.com/en-us/support/advisory.SD1666.html",
+            "source": "PSIRT@rockwellautomation.com",
+            "tags": [
+              "Broken Link"
+            ]
+          },
+          {
+            "url": "https://www.rockwellautomation.com/en-us/support/advisory.SD1666.html",
+            "source": "af854a3a-2127-422b-91ae-364da2661108",
+            "tags": [
+              "Broken Link"
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-9636",
+        "sourceIdentifier": "PSIRT@rockwellautomation.com",
+        "published": "2026-07-14T16:17:05.860",
+        "lastModified": "2026-07-14T16:46:49.030",
+        "vulnStatus": "Awaiting Analysis",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A security issue exists within CompactLogix\u00ae 5380, ControlLogix\u00ae 5580, and EN4 communication modules related to CIP Security certificate revocation handling. The security issue stems from the controller failing to properly reject certificates signed by an intermediate certificate that has been revoked via a Certificate Revocation List (CRL). This could allow a network-based attacker to establish a connection using a certificate that should be untrusted, potentially bypassing CIP Security protections."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV40": [
+            {
+              "source": "PSIRT@rockwellautomation.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "4.0",
+                "vectorString": "CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+                "baseScore": 8.2,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "HIGH",
+                "attackRequirements": "PRESENT",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "vulnConfidentialityImpact": "HIGH",
+                "vulnIntegrityImpact": "NONE",
+                "vulnAvailabilityImpact": "NONE",
+                "subConfidentialityImpact": "NONE",
+                "subIntegrityImpact": "NONE",
+                "subAvailabilityImpact": "NONE",
+                "exploitMaturity": "NOT_DEFINED",
+                "confidentialityRequirement": "NOT_DEFINED",
+                "integrityRequirement": "NOT_DEFINED",
+                "availabilityRequirement": "NOT_DEFINED",
+                "modifiedAttackVector": "NOT_DEFINED",
+                "modifiedAttackComplexity": "NOT_DEFINED",
+                "modifiedAttackRequirements": "NOT_DEFINED",
+                "modifiedPrivilegesRequired": "NOT_DEFINED",
+                "modifiedUserInteraction": "NOT_DEFINED",
+                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
+                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
+                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
+                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
+                "modifiedSubIntegrityImpact": "NOT_DEFINED",
+                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
+                "Safety": "NOT_DEFINED",
+                "Automatable": "NOT_DEFINED",
+                "Recovery": "NOT_DEFINED",
+                "valueDensity": "NOT_DEFINED",
+                "vulnerabilityResponseEffort": "NOT_DEFINED",
+                "providerUrgency": "NOT_DEFINED"
+              }
+            }
+          ],
+          "ssvcV203": [
+            {
+              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+              "ssvcData": {
+                "timestamp": "2026-07-14T15:54:57.625184Z",
+                "id": "CVE-2026-9636",
+                "options": [
+                  {
+                    "exploitation": "none"
+                  },
+                  {
+                    "automatable": "no"
+                  },
+                  {
+                    "technicalImpact": "partial"
+                  }
+                ],
+                "role": "CISA Coordinator",
+                "version": "2.0.3"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "PSIRT@rockwellautomation.com",
+            "type": "Secondary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-299"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1788.html",
+            "source": "PSIRT@rockwellautomation.com"
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "1.0",
+                    "versionEndIncluding": "34.0",
+                    "matchCriteriaId": "TEST-CL5580-RANGE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

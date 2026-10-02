@@ -2,10 +2,10 @@ asset_id,name,vendor,model,firmware_version,cpe,purdue_level,network_zone,exposu
 ASSET-0001,PLC-MAIN-01,Siemens,SIMATIC S7-1200,4.5.0,cpe:2.3:o:siemens:simatic_s7-1200_firmware:4.5.0:*:*:*:*:*:*:*,1,OT-Zone1,isolated,available,Plant-A,Main process controller
 ASSET-0002,PLC-AUX-02,Siemens,SIMATIC S7-1500,2.9.2,cpe:2.3:o:siemens:simatic_s7-1500_firmware:2.9.2:*:*:*:*:*:*:*,1,OT-Zone1,isolated,available,Plant-A,Auxiliary controller
 ASSET-0003,HMI-CTRL-01,Siemens,SIMATIC HMI Comfort Panel,16.0,cpe:2.3:a:siemens:simatic_wincc_runtime:16.0:*:*:*:*:*:*:*,2,OT-Zone2,corporate,available,Plant-A,Operator HMI
-ASSET-0004,RTU-FIELD-01,Schneider Electric,Modicon M340,3.20,cpe:2.3:o:schneiderelectric:modicon_m340_firmware:3.20:*:*:*:*:*:*:*,1,OT-Zone1,air-gapped,unavailable,Plant-B,Field RTU
-ASSET-0005,SWITCH-OT-01,Cisco,IE 4000,15.2,cpe:2.3:o:cisco:ie_4000_firmware:15.2:*:*:*:*:*:*:*,2,OT-Zone2,isolated,available,Plant-A,Industrial switch
-ASSET-0006,SCADA-SRV-01,Schneider Electric,ClearSCADA,2020R1,cpe:2.3:a:schneiderelectric:clearscada:2020:*:*:*:*:*:*:*,2,OT-Zone2,corporate,scheduled,Plant-A,SCADA server
+ASSET-0004,RTU-FIELD-01,Schneider Electric,Modicon M340,3.20,cpe:2.3:o:schneider-electric:modicon_m340_firmware:3.20:*:*:*:*:*:*:*,1,OT-Zone1,air-gapped,unavailable,Plant-B,Field RTU
+ASSET-0005,SWITCH-OT-01,Cisco,IE 4000,15.2,cpe:2.3:o:cisco:ios:15.2:*:*:*:*:*:*:*,2,OT-Zone2,isolated,available,Plant-A,Industrial switch (runs Cisco IOS)
+ASSET-0006,SCADA-SRV-01,Schneider Electric,ClearSCADA,2020R1,cpe:2.3:a:schneider-electric:clearscada:2020:*:*:*:*:*:*:*,2,OT-Zone2,corporate,scheduled,Plant-A,SCADA server
 ASSET-0007,HISTORIAN-01,OSIsoft,PI Server,2018 SP3,cpe:2.3:a:osisoft:pi_server:2018:*:*:*:*:*:*:*,3,OT-DMZ,dmz,eol,Plant-A,Process historian - EOL
-ASSET-0008,FW-OT-01,Fortinet,FortiGate 60F,7.0.5,cpe:2.3:o:fortinet:fortigate_firmware:7.0.5:*:*:*:*:*:*:*,3.5,OT-DMZ,dmz,available,Plant-A,OT firewall
+ASSET-0008,FW-OT-01,Fortinet,FortiGate 60F,7.0.5,cpe:2.3:o:fortinet:fortios:7.0.5:*:*:*:*:*:*:*,3.5,OT-DMZ,dmz,available,Plant-A,OT firewall (FortiOS)
 ASSET-0009,PLC-SAFETY-01,Allen-Bradley,ControlLogix 5580,33.011,cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:33.011:*:*:*:*:*:*:*,1,OT-Zone1,air-gapped,available,Plant-B,Safety controller
 ASSET-0010,VPN-REMOTE-01,Moxa,EDR-G9010,1.0,cpe:2.3:o:moxa:edr-g9010_firmware:1.0:*:*:*:*:*:*:*,3.5,OT-DMZ,internet,available,Plant-A,Remote access VPN

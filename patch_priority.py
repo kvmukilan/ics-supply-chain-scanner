@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 
 from models import Finding, ScanResult, Severity
 
-
 # Compliance-sensitive CWE families get a priority boost
 _COMPLIANCE_CWES = {
     "CWE-287", "CWE-306", "CWE-798", "CWE-521",  # Auth (FR1)
@@ -98,7 +97,7 @@ def compute_patch_priority(
             score *= compliance_weight
 
         # Assets at Purdue levels 0-1 are safety-critical
-        if any(l <= 1 for l in levels):
+        if any(lvl <= 1 for lvl in levels):
             score *= purdue_low_weight
 
         action = PatchAction(

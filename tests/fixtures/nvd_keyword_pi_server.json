@@ -1,0 +1,104 @@
+{
+  "resultsPerPage": 2,
+  "startIndex": 0,
+  "totalResults": 2,
+  "format": "NVD_CVE",
+  "version": "2.0",
+  "timestamp": "2026-10-03T00:00:00.000",
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2020-50001",
+        "sourceIdentifier": "cve@mitre.org",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "An authentication flaw in OSIsoft PI Server 2018 allows a remote attacker to read tags."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://example.com/CVE-2020-50001"
+          }
+        ],
+        "configurations": []
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2020-50002",
+        "sourceIdentifier": "cve@mitre.org",
+        "published": "2022-03-01T00:00:00.000",
+        "lastModified": "2026-01-01T00:00:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A cross-site scripting issue in OSIsoft PI Vision 2019 lets an attacker inject script."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 6.1,
+                "baseSeverity": "MEDIUM"
+              }
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-287"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://example.com/CVE-2020-50002"
+          }
+        ],
+        "configurations": []
+      }
+    }
+  ]
+}

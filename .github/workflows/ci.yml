@@ -5,13 +5,25 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    # The suite is fully offline: NVD and CISA KEV responses come from recorded
+    # fixtures and the tests fail on any real network connection. Blank keys make
+    # sure nothing can pick up credentials from the environment.
+    env:
+      NVD_API_KEY: ""
+      AZURE_OPENAI_ENDPOINT: ""
+      AZURE_OPENAI_API_KEY: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -20,13 +32,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
@@ -34,7 +41,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
+        run: python -m pytest -v --tb=short --junitxml=test-results.xml
+
+      - name: Validate sample inventory and SBOM (offline CLI smoke test)
+        run: |
+          python main.py -i sample_inventory.csv --validate
+          python main.py -i sample_sbom_cyclonedx.json --validate
 
       - name: Upload test results
         if: always()
@@ -53,10 +65,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "ruff==0.16.10"
 
       - name: Lint
-        run: ruff check .
+        run: ruff check --output-format=github .
 
   docker:
     runs-on: ubuntu-latest
@@ -66,3 +78,9 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t ics-scanner:ci .
+
+      - name: Smoke-test the image
+        run: |
+          docker run --rm ics-scanner:ci python main.py -i sample_inventory.csv --validate
+          docker run --rm ics-scanner:ci python main.py -i sample_sbom_cyclonedx.json --validate
+          docker run --rm ics-scanner:ci python -c "import api; print(api.app.title)"

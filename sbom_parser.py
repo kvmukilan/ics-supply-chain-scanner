@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
 from models import Asset
@@ -22,7 +21,7 @@ def parse_sbom(filepath: str | Path) -> list[Asset]:
     if not filepath.exists():
         raise FileNotFoundError(f"SBOM file not found: {filepath}")
 
-    with open(filepath, "r") as f:
+    with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
 
     # Detect format
@@ -72,20 +71,28 @@ def _parse_cyclonedx(data: dict) -> list[Asset]:
         version = comp.get("version", "")
 
         # Extract properties for OT context if available
-        properties = {p["name"]: p["value"] for p in comp.get("properties", [])}
+        # (CycloneDX makes property `value` optional, so tolerate it being absent)
+        properties = {
+            p["name"]: p.get("value", "") for p in comp.get("properties", []) if "name" in p
+        }
 
-        asset = Asset(
-            name=name,
-            vendor=vendor,
-            model=comp.get("description", name),
-            firmware_version=version,
-            cpe=cpe,
-            purdue_level=float(properties.get("purdue_level", properties.get("ics:level", "3"))),
-            network_zone=properties.get("network_zone", "unknown"),
-            exposure=properties.get("exposure", "isolated"),
-            patch_status=properties.get("patch_status", "available"),
-            asset_id=comp.get("bom-ref", f"SBOM-{i+1:04d}"),
-        )
+        try:
+            asset = Asset(
+                name=name,
+                vendor=vendor,
+                model=comp.get("description", name),
+                firmware_version=version,
+                cpe=cpe,
+                purdue_level=float(properties.get("purdue_level", properties.get("ics:level", "3"))),
+                network_zone=properties.get("network_zone", "unknown"),
+                exposure=properties.get("exposure", "isolated"),
+                patch_status=properties.get("patch_status", "available"),
+                asset_id=comp.get("bom-ref", f"SBOM-{i+1:04d}"),
+            )
+        except ValueError as e:
+            # One bad OT property (e.g. exposure "internet-facing") should not drop the whole SBOM
+            logger.warning(f"Skipping component {name!r}: invalid OT property ({e})")
+            continue
         assets.append(asset)
 
     logger.info(f"Parsed {len(assets)} assets from CycloneDX SBOM ({len(components)} total components)")

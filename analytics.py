@@ -9,7 +9,6 @@ from __future__ import annotations
 import statistics
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
 
 from models import Finding, ScanResult, Severity
 

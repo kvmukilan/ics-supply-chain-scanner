@@ -104,6 +104,12 @@ Examples:
         help="Quality gate: max allowed KEV findings (default: 0)",
     )
     parser.add_argument(
+        "--gate-include-possible",
+        action="store_true",
+        help="Quality gate: also gate on unverified 'possible' (keyword) findings "
+        "(default: off — only version-confirmed findings count toward the gate)",
+    )
+    parser.add_argument(
         "--webhook",
         metavar="URL",
         default=os.getenv("ALERT_WEBHOOK_URL", ""),
@@ -149,8 +155,14 @@ async def main() -> int:
     result = await scanner.scan(str(inventory_path))
 
     # Generate reports
-    from report import generate_csv_report, generate_html_report, generate_json_report, generate_markdown_report
     from datetime import datetime, timezone
+
+    from report import (
+        generate_csv_report,
+        generate_html_report,
+        generate_json_report,
+        generate_markdown_report,
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     prefix = f"{args.output}/{result.scan_id}_{timestamp}"
@@ -197,7 +209,8 @@ async def main() -> int:
     # Quality gate
     gate_exit = 0
     if args.gate:
-        from quality_gate import GatePolicy, evaluate as gate_evaluate
+        from quality_gate import GatePolicy
+        from quality_gate import evaluate as gate_evaluate
         gate_policy = GatePolicy(
             max_critical=args.gate_max_critical,
             max_kev=args.gate_max_kev,
@@ -206,7 +219,12 @@ async def main() -> int:
         if result.findings:
             from compliance import assess_compliance as _assess_comp
             posture_str = _assess_comp(result).overall_posture
-        gate_result = gate_evaluate(result, gate_policy, compliance_posture=posture_str)
+        gate_result = gate_evaluate(
+            result,
+            gate_policy,
+            compliance_posture=posture_str,
+            include_possible=args.gate_include_possible,
+        )
         if not gate_result.passed:
             logger.warning(f"Quality gate FAILED: {gate_result.summary}")
             gate_exit = 2
@@ -217,8 +235,10 @@ async def main() -> int:
     print(f"SCAN COMPLETE: {result.scan_id}")
     print("=" * 60)
     print(f"Assets scanned:  {summary['total_assets']}")
-    print(f"CVEs found:      {summary['total_cves_found']}")
-    print(f"CISA KEV hits:   {summary['kev_matches']}")
+    print(f"Findings found:  {summary['total_cves_found']}")
+    print(f"  Confirmed:     {summary['confirmed_findings']} (CPE applicability, version-checked)")
+    print(f"  Possible:      {summary['possible_findings']} (keyword/unverified — version unconfirmed)")
+    print(f"CISA KEV hits:   {summary['kev_matches']} ({summary['kev_matches_confirmed']} confirmed)")
     print(f"Severity dist:   {json.dumps(summary['severity_distribution'])}")
     if summary["top_risk_findings"]:
         print("\nTop findings by OT Risk Score:")
@@ -233,7 +253,8 @@ async def main() -> int:
         from compliance import assess_compliance
         compliance = assess_compliance(result)
         posture_icon = {"compliant": "[OK]", "at_risk": "[!!]", "non_compliant": "[XX]"}
-        print(f"\nIEC 62443 Posture: {posture_icon.get(compliance.overall_posture, '?')} {compliance.overall_posture.upper()}")
+        icon = posture_icon.get(compliance.overall_posture, "?")
+        print(f"\nIEC 62443 Posture: {icon} {compliance.overall_posture.upper()}")
         failing = [fr for fr, s in compliance.fr_scores.items() if s.status == "fail"]
         at_risk = [fr for fr, s in compliance.fr_scores.items() if s.status == "at_risk"]
         if failing:
@@ -244,11 +265,13 @@ async def main() -> int:
     # Quality gate result
     if args.gate:
         if gate_result.passed:
-            print(f"\nQuality Gate: PASSED")
+            print("\nQuality Gate: PASSED")
         else:
-            print(f"\nQuality Gate: FAILED")
+            print("\nQuality Gate: FAILED")
             for v in gate_result.violations:
                 print(f"  VIOLATION: {v.message}")
+        for w in gate_result.warnings:
+            print(f"  NOTE: {w}")
 
     print("=" * 60)
 
@@ -302,8 +325,7 @@ def _validate_inventory(inventory_path: str, logger) -> int:
 
 def _run_diff(baseline_path: str, current_result, logger) -> None:
     """Compare current scan against a previous JSON report."""
-    from scan_diff import compare_scans
-    from models import ScanResult
+    from scan_diff import compare_scans, load_report
 
     baseline_file = Path(baseline_path)
     if not baseline_file.exists():
@@ -311,51 +333,7 @@ def _run_diff(baseline_path: str, current_result, logger) -> None:
         return
 
     try:
-        with open(baseline_file) as f:
-            baseline_data = json.load(f)
-
-        # Reconstruct a minimal ScanResult from the JSON report metadata
-        meta = baseline_data.get("metadata", {})
-        baseline = ScanResult(
-            scan_id=meta.get("scan_id", "UNKNOWN"),
-            total_assets=meta.get("total_assets", 0),
-            total_cves=meta.get("total_cves_found", 0),
-        )
-
-        # Rebuild findings from report data
-        from models import Asset, CVEEntry, Finding, Severity
-        for fd in baseline_data.get("findings", []):
-            asset_d = fd.get("asset", {})
-            vuln_d = fd.get("vulnerability", {})
-            risk_d = fd.get("risk_assessment", {})
-            asset = Asset(
-                name=asset_d.get("name", ""),
-                vendor=asset_d.get("vendor", ""),
-                model=asset_d.get("model", ""),
-                firmware_version=asset_d.get("firmware", ""),
-                cpe=asset_d.get("cpe", ""),
-                purdue_level=float(asset_d.get("purdue_level", 3)),
-                network_zone=asset_d.get("network_zone", "unknown"),
-                exposure=asset_d.get("exposure", "isolated"),
-                patch_status=asset_d.get("patch_status", "available"),
-                asset_id=asset_d.get("name", ""),
-            )
-            cve = CVEEntry(
-                cve_id=vuln_d.get("cve_id", ""),
-                description=vuln_d.get("description", ""),
-                cvss_base_score=float(vuln_d.get("cvss_base", 0)),
-                cvss_vector=vuln_d.get("cvss_vector", ""),
-                severity=Severity(vuln_d.get("severity", "NONE")),
-                published="", last_modified="",
-            )
-            finding = Finding(
-                asset=asset, cve=cve,
-                in_kev=risk_d.get("in_kev", False),
-                ot_risk_score=float(risk_d.get("ot_risk_score", 0)),
-                ot_severity=Severity(risk_d.get("ot_severity", "NONE")),
-            )
-            baseline.findings.append(finding)
-
+        baseline = load_report(baseline_file)
         diff = compare_scans(baseline, current_result)
         summary = diff.summary()
 

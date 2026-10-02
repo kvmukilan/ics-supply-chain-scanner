@@ -6,14 +6,12 @@ endpoints when scan results contain critical findings or KEV hits.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
 
 import httpx
 
-from models import Finding, ScanResult, Severity
+from models import Finding, ScanResult
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +169,7 @@ def _build_teams_payload(result: ScanResult, findings: list[Finding]) -> dict:
 async def send_alert(
     result: ScanResult,
     webhook: WebhookConfig,
-    rule: Optional[AlertRule] = None,
+    rule: AlertRule | None = None,
 ) -> bool:
     """Filter findings by rule, build payload, and POST to webhook.
 

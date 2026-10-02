@@ -11,10 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 from models import ScanResult, Severity
 
@@ -82,7 +80,7 @@ def save_snapshot(snapshot: RiskSnapshot, path: str = DEFAULT_TIMELINE_PATH) -> 
 
 def load_timeline(
     path: str = DEFAULT_TIMELINE_PATH,
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> list[RiskSnapshot]:
     """Load snapshots from the timeline file.
 

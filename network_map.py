@@ -8,7 +8,7 @@ annotated with finding counts and KEV flags.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from models import Finding, ScanResult, Severity
 

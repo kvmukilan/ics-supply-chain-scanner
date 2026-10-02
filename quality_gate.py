@@ -9,7 +9,6 @@ deployments that don't meet OT security standards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from models import ScanResult, Severity
 
@@ -67,8 +66,9 @@ _POSTURE_RANK = {"compliant": 3, "at_risk": 2, "non_compliant": 1}
 
 def evaluate(
     result: ScanResult,
-    policy: Optional[GatePolicy] = None,
+    policy: GatePolicy | None = None,
     compliance_posture: str = "",
+    include_possible: bool = False,
 ) -> GateResult:
     """Evaluate scan results against a quality gate policy.
 
@@ -78,6 +78,10 @@ def evaluate(
         compliance_posture: IEC 62443 compliance posture string
             (from compliance.assess_compliance). Empty string skips
             the compliance check.
+        include_possible: When False (the default), unverified "possible"
+            findings (keyword/no-applicability matches whose version was never
+            confirmed) are excluded from the gate so they can't fail a build on
+            a version-blind false positive. Set True to gate on them too.
 
     Returns:
         GateResult with pass/fail status and violation details.
@@ -88,15 +92,25 @@ def evaluate(
     violations: list[GateViolation] = []
     warnings: list[str] = []
 
+    # By default the gate only considers confirmed (version-checked) findings;
+    # "possible" keyword hits are advisory and must not fail a build on their own.
+    gated_findings = result.findings if include_possible else result.confirmed_findings
+    excluded = len(result.findings) - len(gated_findings)
+    if excluded and not include_possible:
+        warnings.append(
+            f"{excluded} possible/unverified finding(s) excluded from the gate "
+            f"(use --gate-include-possible to gate on them too)"
+        )
+
     # Count severities
     critical_count = sum(
-        1 for f in result.findings if f.ot_severity == Severity.CRITICAL
+        1 for f in gated_findings if f.ot_severity == Severity.CRITICAL
     )
     high_count = sum(
-        1 for f in result.findings if f.ot_severity == Severity.HIGH
+        1 for f in gated_findings if f.ot_severity == Severity.HIGH
     )
-    kev_count = sum(1 for f in result.findings if f.in_kev)
-    scores = [f.ot_risk_score for f in result.findings]
+    kev_count = sum(1 for f in gated_findings if f.in_kev)
+    scores = [f.ot_risk_score for f in gated_findings]
     mean_score = round(sum(scores) / len(scores), 2) if scores else 0.0
     max_score = round(max(scores), 2) if scores else 0.0
 
@@ -152,7 +166,10 @@ def evaluate(
         if actual_rank < required_rank:
             violations.append(GateViolation(
                 rule="min_compliance_posture",
-                message=f"Compliance posture '{compliance_posture}' does not meet minimum '{policy.min_compliance_posture}'",
+                message=(
+                    f"Compliance posture '{compliance_posture}' does not meet "
+                    f"minimum '{policy.min_compliance_posture}'"
+                ),
                 actual=compliance_posture,
                 threshold=policy.min_compliance_posture,
             ))
@@ -164,8 +181,9 @@ def evaluate(
         warnings.append("No findings in scan results — verify inventory is correct")
 
     passed = len(violations) == 0
+    scope = "confirmed findings" if not include_possible else "findings (incl. possible)"
     summary = (
-        f"PASSED — {len(result.findings)} findings within policy"
+        f"PASSED — {len(gated_findings)} {scope} within policy"
         if passed
         else f"FAILED — {len(violations)} violation(s): {', '.join(v.rule for v in violations)}"
     )
