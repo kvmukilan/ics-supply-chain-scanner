@@ -9,7 +9,14 @@ from conftest import load_fixture
 import nvd_client
 from config import NVDConfig
 from models import Severity
-from nvd_client import NVDClient, build_keyword_query, parse_cpe_keywords, query_all_assets
+from nvd_client import (
+    KEYWORD_MAX_RESULTS,
+    NVDClient,
+    build_keyword_queries,
+    build_keyword_query,
+    parse_cpe_keywords,
+    query_all_assets,
+)
 
 CONTROLLOGIX_CPE = "cpe:2.3:o:rockwellautomation:controllogix_5580_firmware:33.011:*:*:*:*:*:*:*"
 
@@ -88,6 +95,12 @@ def test_keyword_query_drops_firmware_suffix():
     assert build_keyword_query("pi server") == "pi server"
 
 
+def test_keyword_queries_try_vendor_qualified_search_first():
+    assert build_keyword_queries("osisoft", "pi server") == ["osisoft pi server", "pi server"]
+    assert build_keyword_queries("rockwellautomation", "controllogix 5580 firmware") == [
+        "rockwellautomation controllogix 5580", "controllogix 5580"]
+
+
 async def test_exact_cpe_match_is_used_when_nvd_has_results(fake_api, nvd_config):
     fake_api.nvd_by_cpe[CONTROLLOGIX_CPE] = "nvd_cpe_controllogix_5580.json"
 
@@ -121,8 +134,10 @@ async def test_keyword_fallback_finds_cves_when_exact_cpe_has_none(fake_api, nvd
         cves = await NVDClient(nvd_config).query_cpes(CONTROLLOGIX_CPE, client)
 
     calls = fake_api.nvd_calls()
-    assert [c.url.params.get("cpeName") for c in calls] == [CONTROLLOGIX_CPE, None]
-    assert calls[1].url.params["keywordSearch"] == "controllogix 5580"
+    assert calls[0].url.params["cpeName"] == CONTROLLOGIX_CPE
+    # vendor-qualified search returns nothing, so the product-only search is tried
+    assert [c.url.params["keywordSearch"] for c in calls[1:]] == [
+        "rockwellautomation controllogix 5580", "controllogix 5580"]
     ids = {c.cve_id for c in cves}
     assert {"CVE-2017-6024", "CVE-2021-22681"} <= ids
 
@@ -159,6 +174,25 @@ async def test_pagination_follows_total_results(nvd_config):
     assert [c.cve_id for c in cves] == [v["cve"]["id"] for v in vulns]
 
 
+async def test_broad_keyword_search_stops_paging_at_cap(nvd_config):
+    # "pi server" matches thousands of CVEs; paging through all of them at NVD's
+    # unauthenticated rate limit would take hours.
+    vuln = load_fixture("nvd_cve_2014_2251.json")["vulnerabilities"][0]
+    starts = []
+
+    def handler(request):
+        params = request.url.params
+        if "cpeName" in params:
+            return httpx.Response(200, json={"totalResults": 0, "vulnerabilities": []})
+        starts.append(int(params["startIndex"]))
+        return httpx.Response(200, json={"totalResults": 5000, "vulnerabilities": [vuln] * 50})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        await NVDClient(nvd_config).query_cpes("cpe:2.3:a:osisoft:pi_server:2018:*:*:*:*:*:*:*", client)
+
+    assert starts == list(range(0, KEYWORD_MAX_RESULTS, 50))
+
+
 async def test_rate_limit_403_is_retried_with_backoff(nvd_config, no_sleep):
     responses = iter([httpx.Response(403), httpx.Response(200, json=load_fixture("nvd_cve_2021_22681.json"))])
 
@@ -180,8 +214,8 @@ async def test_gives_up_after_max_retries(nvd_config, no_sleep):
         cves = await NVDClient(nvd_config).query_cpes(CONTROLLOGIX_CPE, client)
 
     assert cves == []
-    # exact query exhausts its retries; the keyword fallback then does the same
-    assert len(calls) == 2 * nvd_config.max_retries
+    # exact query and both keyword searches each exhaust their retries
+    assert len(calls) == 3 * nvd_config.max_retries
 
 
 async def test_query_all_assets_queries_each_unique_cpe_once(fake_api, nvd_config):

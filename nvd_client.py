@@ -50,6 +50,22 @@ def build_keyword_query(product: str) -> str:
     return " ".join(w for w in product.split() if w.lower() != "firmware")
 
 
+def build_keyword_queries(vendor: str, product: str) -> list[str]:
+    """Keyword searches to try, most specific first.
+
+    "<vendor> <product>" works when the vendor token is a real word ("siemens",
+    "osisoft"); concatenated tokens ("rockwellautomation") never match, so fall
+    back to the product words alone.
+    """
+    product_kw = build_keyword_query(product)
+    queries = [f"{vendor} {product_kw}".strip(), product_kw]
+    return [q for i, q in enumerate(queries) if q and q not in queries[:i]]
+
+
+# Keyword search can match thousands of CVEs ("pi server"); don't page through them all.
+KEYWORD_MAX_RESULTS = 100
+
+
 class NVDClient:
     """Async client for NVD CVE API v2."""
 
@@ -87,13 +103,19 @@ class NVDClient:
                 logger.info(f"Found 0 CVEs for {cpe_string} (no fallback keywords)")
                 return []
 
-            keyword = build_keyword_query(product)
-            logger.info(f"Exact CPE match returned 0 results. Falling back to keywordSearch: '{keyword}'")
-
-            await asyncio.sleep(self.rate_delay)
-            cves = await self._paginated_query(
-                client, {"keywordSearch": keyword, "resultsPerPage": 50}
-            )
+            cves = []
+            for keyword in build_keyword_queries(vendor, product):
+                logger.info(
+                    f"No CVEs yet for {cpe_string}. Falling back to keywordSearch: '{keyword}'"
+                )
+                await asyncio.sleep(self.rate_delay)
+                cves = await self._paginated_query(
+                    client,
+                    {"keywordSearch": keyword, "resultsPerPage": 50},
+                    max_results=KEYWORD_MAX_RESULTS,
+                )
+                if cves:
+                    break
 
             # Filter by version if available — keyword search is broad
             if version and cves:
@@ -107,9 +129,9 @@ class NVDClient:
             return cves
 
     async def _paginated_query(
-        self, client: httpx.AsyncClient, base_params: dict
+        self, client: httpx.AsyncClient, base_params: dict, max_results: int | None = None
     ) -> list[CVEEntry]:
-        """Run a paginated NVD query."""
+        """Run a paginated NVD query, stopping early once max_results CVEs are collected."""
         cves = []
         start_index = 0
 
@@ -133,6 +155,8 @@ class NVDClient:
                 total = data.get("totalResults", 0)
                 start_index += len(vulnerabilities)
                 if start_index >= total:
+                    break
+                if max_results is not None and len(cves) >= max_results:
                     break
 
                 await asyncio.sleep(self.rate_delay)
