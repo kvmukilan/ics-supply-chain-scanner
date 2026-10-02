@@ -11,58 +11,81 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from models import Finding, ScanResult, Severity
+from models import ScanResult
+
+# ATT&CK for ICS tactics (the ICS matrix uses TA0100-TA0111, not the Enterprise IDs).
+# https://attack.mitre.org/tactics/ics/
+ICS_TACTICS = {
+    "TA0100": "Collection",
+    "TA0101": "Command and Control",
+    "TA0102": "Discovery",
+    "TA0103": "Evasion",
+    "TA0104": "Execution",
+    "TA0105": "Impact",
+    "TA0106": "Impair Process Control",
+    "TA0107": "Inhibit Response Function",
+    "TA0108": "Initial Access",
+    "TA0109": "Lateral Movement",
+    "TA0110": "Persistence",
+    "TA0111": "Privilege Escalation",
+}
+
+# ATT&CK for ICS techniques used below: (technique name, primary tactic ID).
+# Techniques that sit under several tactics are pinned to one so that each
+# technique is reported under a single, consistent tactic.
+_T = {
+    "T0807": ("Command-Line Interface", "TA0104"),
+    "T0811": ("Data from Information Repositories", "TA0100"),
+    "T0814": ("Denial of Service", "TA0107"),
+    "T0830": ("Adversary-in-the-Middle", "TA0100"),
+    "T0831": ("Manipulation of Control", "TA0105"),
+    "T0855": ("Unauthorized Command Message", "TA0106"),
+    "T0859": ("Valid Accounts", "TA0109"),
+    "T0865": ("Spearphishing Attachment", "TA0108"),
+    "T0886": ("Remote Services", "TA0108"),
+    "T0890": ("Exploitation for Privilege Escalation", "TA0111"),
+}
+
+
+def _techs(*technique_ids: str) -> list[tuple[str, str, str]]:
+    return [(tid, *_T[tid]) for tid in technique_ids]
+
 
 # CWE -> ATT&CK for ICS technique mapping
 # Based on common vulnerability-to-technique relationships
 CWE_TO_ATTCK_ICS = {
     # Authentication / access
-    "CWE-287": [("T0859", "Valid Accounts", "TA0001")],
-    "CWE-306": [("T0859", "Valid Accounts", "TA0001"), ("T0886", "Remote Services", "TA0001")],
-    "CWE-798": [("T0859", "Valid Accounts", "TA0001")],
-    "CWE-521": [("T0859", "Valid Accounts", "TA0001")],
-    "CWE-307": [("T0811", "Data from Information Repositories", "TA0009")],
+    "CWE-287": _techs("T0859"),
+    "CWE-306": _techs("T0859", "T0886"),
+    "CWE-798": _techs("T0859"),
+    "CWE-521": _techs("T0859"),
+    "CWE-307": _techs("T0859"),  # brute force -> obtaining valid credentials
     # Authorization / privilege
-    "CWE-269": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
-    "CWE-276": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
-    "CWE-732": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
-    "CWE-862": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
+    "CWE-269": _techs("T0890"),
+    "CWE-276": _techs("T0890"),
+    "CWE-732": _techs("T0890"),
+    "CWE-862": _techs("T0890"),
     # Memory corruption / code execution
-    "CWE-120": [("T0807", "Command-Line Interface", "TA0002"), ("T0831", "Manipulation of Control", "TA0011")],
-    "CWE-787": [("T0807", "Command-Line Interface", "TA0002"), ("T0831", "Manipulation of Control", "TA0011")],
-    "CWE-119": [("T0807", "Command-Line Interface", "TA0002")],
-    "CWE-20": [("T0855", "Unauthorized Command Message", "TA0011")],
+    "CWE-120": _techs("T0807", "T0831"),
+    "CWE-787": _techs("T0807", "T0831"),
+    "CWE-119": _techs("T0807"),
+    "CWE-20": _techs("T0855"),
     # Injection
-    "CWE-79": [("T0865", "Spearphishing Attachment", "TA0001")],
-    "CWE-89": [("T0811", "Data from Information Repositories", "TA0009")],
+    "CWE-79": _techs("T0865"),
+    "CWE-89": _techs("T0811"),
     # Information disclosure
-    "CWE-200": [("T0811", "Data from Information Repositories", "TA0009")],
-    "CWE-312": [("T0811", "Data from Information Repositories", "TA0009")],
-    "CWE-319": [("T0830", "Man in the Middle", "TA0009")],
-    "CWE-327": [("T0830", "Man in the Middle", "TA0009")],
-    "CWE-311": [("T0830", "Man in the Middle", "TA0009")],
+    "CWE-200": _techs("T0811"),
+    "CWE-312": _techs("T0811"),
+    "CWE-319": _techs("T0830"),
+    "CWE-327": _techs("T0830"),
+    "CWE-311": _techs("T0830"),
     # Network
-    "CWE-284": [("T0886", "Remote Services", "TA0001")],
-    "CWE-668": [("T0886", "Remote Services", "TA0001")],
+    "CWE-284": _techs("T0886"),
+    "CWE-668": _techs("T0886"),
     # Availability
-    "CWE-400": [("T0814", "Denial of Service", "TA0010")],
-    "CWE-770": [("T0814", "Denial of Service", "TA0010")],
-    "CWE-404": [("T0814", "Denial of Service", "TA0010")],
-}
-
-# ATT&CK for ICS tactic metadata
-ICS_TACTICS = {
-    "TA0001": "Initial Access",
-    "TA0002": "Execution",
-    "TA0003": "Persistence",
-    "TA0004": "Privilege Escalation",
-    "TA0005": "Evasion",
-    "TA0006": "Discovery",
-    "TA0007": "Lateral Movement",
-    "TA0008": "Privilege Escalation",
-    "TA0009": "Collection",
-    "TA0010": "Impact",
-    "TA0011": "Impair Process Control",
+    "CWE-400": _techs("T0814"),
+    "CWE-770": _techs("T0814"),
+    "CWE-404": _techs("T0814"),
 }
 
 
