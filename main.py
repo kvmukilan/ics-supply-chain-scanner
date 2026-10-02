@@ -104,6 +104,12 @@ Examples:
         help="Quality gate: max allowed KEV findings (default: 0)",
     )
     parser.add_argument(
+        "--gate-include-possible",
+        action="store_true",
+        help="Quality gate: also gate on unverified 'possible' (keyword) findings "
+        "(default: off — only version-confirmed findings count toward the gate)",
+    )
+    parser.add_argument(
         "--webhook",
         metavar="URL",
         default=os.getenv("ALERT_WEBHOOK_URL", ""),
@@ -213,7 +219,12 @@ async def main() -> int:
         if result.findings:
             from compliance import assess_compliance as _assess_comp
             posture_str = _assess_comp(result).overall_posture
-        gate_result = gate_evaluate(result, gate_policy, compliance_posture=posture_str)
+        gate_result = gate_evaluate(
+            result,
+            gate_policy,
+            compliance_posture=posture_str,
+            include_possible=args.gate_include_possible,
+        )
         if not gate_result.passed:
             logger.warning(f"Quality gate FAILED: {gate_result.summary}")
             gate_exit = 2
@@ -224,8 +235,10 @@ async def main() -> int:
     print(f"SCAN COMPLETE: {result.scan_id}")
     print("=" * 60)
     print(f"Assets scanned:  {summary['total_assets']}")
-    print(f"CVEs found:      {summary['total_cves_found']}")
-    print(f"CISA KEV hits:   {summary['kev_matches']}")
+    print(f"Findings found:  {summary['total_cves_found']}")
+    print(f"  Confirmed:     {summary['confirmed_findings']} (CPE applicability, version-checked)")
+    print(f"  Possible:      {summary['possible_findings']} (keyword/unverified — right product, version unconfirmed)")
+    print(f"CISA KEV hits:   {summary['kev_matches']} ({summary['kev_matches_confirmed']} confirmed)")
     print(f"Severity dist:   {json.dumps(summary['severity_distribution'])}")
     if summary["top_risk_findings"]:
         print("\nTop findings by OT Risk Score:")
@@ -257,6 +270,8 @@ async def main() -> int:
             print("\nQuality Gate: FAILED")
             for v in gate_result.violations:
                 print(f"  VIOLATION: {v.message}")
+        for w in gate_result.warnings:
+            print(f"  NOTE: {w}")
 
     print("=" * 60)
 

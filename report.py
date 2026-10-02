@@ -58,6 +58,11 @@ def generate_json_report(result: ScanResult, output_path: str) -> str:
                 "in_kev": f.in_kev,
                 "score_breakdown": f.score_breakdown,
             },
+            "match": {
+                "method": f.match_method,
+                "version_checked": f.version_checked,
+                "confirmed": f.version_checked,
+            },
             "remediation": json.loads(f.remediation) if f.remediation else {},
             "iec_62443_mappings": f.iec_62443_mappings,
         }
@@ -95,6 +100,14 @@ def _severity_color(severity: Severity) -> str:
 def _severity_badge(severity: Severity) -> str:
     color = _severity_color(severity)
     return f'<span style="background:{color};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">{severity.value}</span>'
+
+
+def _match_badge(finding) -> str:
+    """A badge distinguishing version-confirmed CPE matches from unverified ('possible') ones."""
+    if finding.version_checked:
+        return '<span title="CPE applicability matched and the asset version was verified in the affected range" style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">CONFIRMED</span>'
+    label = "POSSIBLE (keyword)" if finding.match_method == "keyword" else "POSSIBLE (unverified)"
+    return f'<span title="Product matched but the version was not verified against NVD applicability data — treat as a lead, not a confirmed hit" style="background:#ca8a04;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{label}</span>'
 
 
 def generate_html_report(result: ScanResult, output_path: str) -> str:
@@ -145,6 +158,7 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
                 <div>
                     <strong style="font-size:16px">{f.cve.cve_id}</strong>{kev_tag}
                     {_severity_badge(f.ot_severity)}
+                    {_match_badge(f)}
                     <span style="color:#6b7280;margin-left:8px">OT Score: <strong>{f.ot_risk_score:.2f}</strong> | CVSS: {f.cve.cvss_base_score}</span>
                 </div>
             </div>
@@ -194,7 +208,15 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
         <div class="stats">
             <div class="stat">
                 <div class="value">{result.total_cves}</div>
-                <div class="label">Total CVEs</div>
+                <div class="label">Total Findings</div>
+            </div>
+            <div class="stat">
+                <div class="value" style="color:#16a34a">{summary['confirmed_findings']}</div>
+                <div class="label">Confirmed (version-checked)</div>
+            </div>
+            <div class="stat">
+                <div class="value" style="color:#ca8a04">{summary['possible_findings']}</div>
+                <div class="label">Possible (unverified)</div>
             </div>
             <div class="stat">
                 <div class="value" style="color:#dc2626">{sev_dist.get('CRITICAL', 0)}</div>
@@ -227,7 +249,8 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
                 <tbody>{fr_rows}</tbody>
             </table>
         </div>
-        <h2 style="margin-bottom:16px;font-size:20px">Findings (sorted by OT Risk Score)</h2>
+        <h2 style="margin-bottom:4px;font-size:20px">Findings (sorted by OT Risk Score)</h2>
+        <p style="margin-bottom:16px;color:#6b7280;font-size:13px"><strong style="color:#16a34a">CONFIRMED</strong> = NVD CPE applicability matched and the asset version was verified in the affected range. <strong style="color:#ca8a04">POSSIBLE</strong> = right product but the version could not be verified (keyword/no applicability data); treat as a lead.</p>
         {findings_html}
         {"<div style='background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin-top:16px'><strong>Errors during scan:</strong><ul>" + "".join(f"<li>{e}</li>" for e in result.errors) + "</ul></div>" if result.errors else ""}
     </div>
@@ -250,6 +273,7 @@ def generate_csv_report(result: ScanResult, output_path: str) -> str:
         "Firmware", "CPE", "Purdue Level", "Network Zone", "Exposure",
         "Patch Status", "CVE ID", "CVSS Base", "CVSS Vector",
         "CVE Severity", "OT Risk Score", "OT Severity",
+        "Match Method", "Version Checked", "Confidence",
         "In CISA KEV", "KEV Due Date", "KEV Required Action",
         "IEC 62443 Mappings", "NVD URL",
     ]
@@ -286,6 +310,9 @@ def generate_csv_report(result: ScanResult, output_path: str) -> str:
                 "CVE Severity": finding.cve.severity.value,
                 "OT Risk Score": round(finding.ot_risk_score, 2),
                 "OT Severity": finding.ot_severity.value,
+                "Match Method": finding.match_method,
+                "Version Checked": "Yes" if finding.version_checked else "No",
+                "Confidence": "confirmed" if finding.version_checked else "possible",
                 "In CISA KEV": "Yes" if finding.in_kev else "No",
                 "KEV Due Date": kev_due,
                 "KEV Required Action": kev_action,
@@ -321,7 +348,9 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
         "",
         "| Metric | Value |",
         "|--------|------:|",
-        f"| Total CVEs | {result.total_cves} |",
+        f"| Total Findings | {result.total_cves} |",
+        f"| Confirmed (version-checked) | {summary['confirmed_findings']} |",
+        f"| Possible (unverified) | {summary['possible_findings']} |",
         f"| Critical | {sev_dist.get('CRITICAL', 0)} |",
         f"| High | {sev_dist.get('HIGH', 0)} |",
         f"| Medium | {sev_dist.get('MEDIUM', 0)} |",
@@ -351,12 +380,13 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
     if sorted_findings:
         lines.append("## Findings")
         lines.append("")
-        lines.append("| OT Score | Severity | CVE | Asset | Vendor | Level | KEV |")
-        lines.append("|----------|----------|-----|-------|--------|-------|-----|")
+        lines.append("| OT Score | Severity | Confidence | CVE | Asset | Vendor | Level | KEV |")
+        lines.append("|----------|----------|------------|-----|-------|--------|-------|-----|")
         for f in sorted_findings:
             kev_mark = "Yes" if f.in_kev else ""
+            confidence = "confirmed" if f.version_checked else f"possible ({f.match_method})"
             lines.append(
-                f"| {f.ot_risk_score:.2f} | {f.ot_severity.value} | "
+                f"| {f.ot_risk_score:.2f} | {f.ot_severity.value} | {confidence} | "
                 f"[{f.cve.cve_id}]({f.cve.nvd_url}) | "
                 f"{f.asset.name} | {f.asset.vendor} | "
                 f"{f.asset.purdue_level} | {kev_mark} |"
