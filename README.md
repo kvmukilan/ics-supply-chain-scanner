@@ -137,3 +137,7 @@ Reports go to `output/` (configurable via `-o`):
 ├── .env.example
 └── sample_inventory.csv
 ```
+
+## Deployment readiness
+
+See [deployment setup, checks, and rollback](docs/production.md).

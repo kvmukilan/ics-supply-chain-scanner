@@ -9,7 +9,6 @@ from __future__ import annotations
 import statistics
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
 
 from models import Finding, ScanResult, Severity
 
@@ -41,9 +40,7 @@ def compute_analytics(result: ScanResult) -> dict:
         "cve_age_stats": _cve_age_stats(findings),
         "kev_coverage": _kev_coverage(findings),
         "severity_percentages": _severity_percentages(findings),
-        "mean_ot_risk_score": round(
-            statistics.mean(f.ot_risk_score for f in findings), 2
-        ),
+        "mean_ot_risk_score": round(statistics.mean(f.ot_risk_score for f in findings), 2),
         "findings_above_threshold": {
             "critical_8_5": sum(1 for f in findings if f.ot_risk_score >= 8.5),
             "high_6_5": sum(1 for f in findings if 6.5 <= f.ot_risk_score < 8.5),
@@ -91,15 +88,15 @@ def _top_vulnerable_vendors(findings: list[Finding], top_n: int = 5) -> list[dic
 
     ranked = []
     for vendor, vendor_findings in by_vendor.items():
-        ranked.append({
-            "vendor": vendor,
-            "finding_count": len(vendor_findings),
-            "max_ot_score": round(max(f.ot_risk_score for f in vendor_findings), 2),
-            "critical_count": sum(
-                1 for f in vendor_findings if f.ot_severity == Severity.CRITICAL
-            ),
-            "kev_count": sum(1 for f in vendor_findings if f.in_kev),
-        })
+        ranked.append(
+            {
+                "vendor": vendor,
+                "finding_count": len(vendor_findings),
+                "max_ot_score": round(max(f.ot_risk_score for f in vendor_findings), 2),
+                "critical_count": sum(1 for f in vendor_findings if f.ot_severity == Severity.CRITICAL),
+                "kev_count": sum(1 for f in vendor_findings if f.in_kev),
+            }
+        )
 
     return sorted(ranked, key=lambda x: (-x["max_ot_score"], -x["finding_count"]))[:top_n]
 
@@ -141,8 +138,7 @@ def _kev_coverage(findings: list[Finding]) -> dict:
     total = len(findings)
     kev_count = sum(1 for f in findings if f.in_kev)
     ransomware_count = sum(
-        1 for f in findings
-        if f.in_kev and f.kev_entry and f.kev_entry.known_ransomware_use == "Known"
+        1 for f in findings if f.in_kev and f.kev_entry and f.kev_entry.known_ransomware_use == "Known"
     )
 
     return {

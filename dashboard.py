@@ -6,17 +6,15 @@ import asyncio
 import json
 import os
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from config import ScannerConfig
 from inventory import load_inventory
-from models import Asset, Finding, Severity
+from models import Finding
 from scanner import ICSScanner
-
 
 # --- Page Config ---
 st.set_page_config(
@@ -27,7 +25,8 @@ st.set_page_config(
 )
 
 # --- Custom CSS ---
-st.markdown("""
+st.markdown(
+    """
 <style>
     .metric-card {
         background: linear-gradient(135deg, #1e293b, #334155);
@@ -49,7 +48,9 @@ st.markdown("""
     div[data-testid="stSidebar"] { background: #0f172a; }
     div[data-testid="stSidebar"] .stMarkdown { color: #e2e8f0; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 SEVERITY_COLORS = {
@@ -75,7 +76,9 @@ def build_config_from_sidebar() -> ScannerConfig:
     config = ScannerConfig()
 
     st.sidebar.header("API Configuration")
-    nvd_key = st.sidebar.text_input("NVD API Key (optional)", type="password", value=os.getenv("NVD_API_KEY", ""))
+    nvd_key = st.sidebar.text_input(
+        "NVD API Key (optional)", type="password", value=os.getenv("NVD_API_KEY", "")
+    )
     if nvd_key:
         config.nvd.api_key = nvd_key
 
@@ -83,7 +86,9 @@ def build_config_from_sidebar() -> ScannerConfig:
     st.sidebar.subheader("Azure OpenAI (optional)")
     aoai_endpoint = st.sidebar.text_input("Endpoint", value=os.getenv("AZURE_OPENAI_ENDPOINT", ""))
     aoai_key = st.sidebar.text_input("API Key", type="password", value=os.getenv("AZURE_OPENAI_API_KEY", ""))
-    aoai_deployment = st.sidebar.text_input("Deployment", value=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"))
+    aoai_deployment = st.sidebar.text_input(
+        "Deployment", value=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    )
 
     if aoai_endpoint and aoai_key:
         config.llm.endpoint = aoai_endpoint
@@ -128,20 +133,26 @@ def render_summary(findings: list[Finding], total_assets: int):
         ("In CISA KEV", kev_count, "#7c3aed"),
     ]
 
-    for col, (label, value, color) in zip(cols, metrics):
+    for col, (label, value, color) in zip(cols, metrics, strict=True):
         with col:
             if color:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div class="metric-card">
                     <div class="value" style="color:{color}">{value}</div>
                     <div class="label">{label}</div>
-                </div>""", unsafe_allow_html=True)
+                </div>""",
+                    unsafe_allow_html=True,
+                )
             else:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div class="metric-card">
                     <div class="value">{value}</div>
                     <div class="label">{label}</div>
-                </div>""", unsafe_allow_html=True)
+                </div>""",
+                    unsafe_allow_html=True,
+                )
 
 
 def render_findings_table(findings: list[Finding]):
@@ -152,19 +163,21 @@ def render_findings_table(findings: list[Finding]):
 
     rows = []
     for f in sorted(findings, key=lambda x: x.ot_risk_score, reverse=True):
-        rows.append({
-            "OT Score": round(f.ot_risk_score, 2),
-            "Severity": f.ot_severity.value,
-            "CVE": f.cve.cve_id,
-            "CVSS": f.cve.cvss_base_score,
-            "KEV": "Yes" if f.in_kev else "",
-            "Asset": f.asset.name,
-            "Vendor": f.asset.vendor,
-            "Model": f.asset.model,
-            "Purdue": f.asset.purdue_level,
-            "Exposure": f.asset.exposure.value,
-            "Patch": f.asset.patch_status.value,
-        })
+        rows.append(
+            {
+                "OT Score": round(f.ot_risk_score, 2),
+                "Severity": f.ot_severity.value,
+                "CVE": f.cve.cve_id,
+                "CVSS": f.cve.cvss_base_score,
+                "KEV": "Yes" if f.in_kev else "",
+                "Asset": f.asset.name,
+                "Vendor": f.asset.vendor,
+                "Model": f.asset.model,
+                "Purdue": f.asset.purdue_level,
+                "Exposure": f.asset.exposure.value,
+                "Patch": f.asset.patch_status.value,
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -182,7 +195,10 @@ def render_finding_detail(finding: Finding):
     kev_tag = " 🔴 **CISA KEV**" if f.in_kev else ""
 
     st.markdown(f"### {f.cve.cve_id}{kev_tag}")
-    st.markdown(f"**OT Risk Score: {f.ot_risk_score:.2f}** ({f.ot_severity.value}) | CVSS Base: {f.cve.cvss_base_score}")
+    st.markdown(
+        f"**OT Risk Score: {f.ot_risk_score:.2f}** ({f.ot_severity.value}) "
+        f"| CVSS Base: {f.cve.cvss_base_score}"
+    )
 
     col1, col2 = st.columns(2)
     with col1:
@@ -225,8 +241,13 @@ def render_finding_detail(finding: Finding):
     if f.remediation:
         st.markdown("**Remediation Playbook**")
         rem = json.loads(f.remediation)
-        for section in ["immediate_actions", "short_term_remediation", "long_term_remediation",
-                        "compensating_controls", "verification_steps"]:
+        for section in [
+            "immediate_actions",
+            "short_term_remediation",
+            "long_term_remediation",
+            "compensating_controls",
+            "verification_steps",
+        ]:
             items = rem.get(section, [])
             if items:
                 st.markdown(f"*{section.replace('_', ' ').title()}:*")
@@ -250,9 +271,9 @@ def render_charts(findings: list[Finding]):
             sev = f.ot_severity.value
             sev_data[sev] = sev_data.get(sev, 0) + 1
         order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]
-        chart_df = pd.DataFrame([
-            {"Severity": s, "Count": sev_data.get(s, 0)} for s in order if sev_data.get(s, 0) > 0
-        ])
+        chart_df = pd.DataFrame(
+            [{"Severity": s, "Count": sev_data.get(s, 0)} for s in order if sev_data.get(s, 0) > 0]
+        )
         if not chart_df.empty:
             st.bar_chart(chart_df.set_index("Severity"))
 
@@ -336,14 +357,17 @@ def main():
         # Filters
         fcol1, fcol2, fcol3 = st.columns(3)
         with fcol1:
-            sev_filter = st.multiselect("Severity", ["CRITICAL", "HIGH", "MEDIUM", "LOW"], default=["CRITICAL", "HIGH"])
+            sev_filter = st.multiselect(
+                "Severity", ["CRITICAL", "HIGH", "MEDIUM", "LOW"], default=["CRITICAL", "HIGH"]
+            )
         with fcol2:
             kev_only = st.checkbox("KEV only")
         with fcol3:
             min_score = st.slider("Min OT Score", 0.0, 10.0, 0.0, 0.5)
 
         filtered = [
-            f for f in findings
+            f
+            for f in findings
             if f.ot_severity.value in sev_filter
             and (not kev_only or f.in_kev)
             and f.ot_risk_score >= min_score
@@ -370,6 +394,7 @@ def main():
         with ecol1:
             if st.button("Generate JSON Report"):
                 from report import generate_json_report
+
                 out_path = f"output/{result.scan_id}_report.json"
                 Path("output").mkdir(exist_ok=True)
                 generate_json_report(result, out_path)
@@ -379,6 +404,7 @@ def main():
         with ecol2:
             if st.button("Generate HTML Report"):
                 from report import generate_html_report
+
                 out_path = f"output/{result.scan_id}_report.html"
                 Path("output").mkdir(exist_ok=True)
                 generate_html_report(result, out_path)

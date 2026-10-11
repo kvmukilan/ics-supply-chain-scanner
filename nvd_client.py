@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
-from typing import Optional
 
 import httpx
 
@@ -39,9 +37,7 @@ class NVDClient:
 
     def __init__(self, config: NVDConfig):
         self.config = config
-        self.rate_delay = (
-            config.rate_limit_delay if config.api_key else config.rate_limit_delay_no_key
-        )
+        self.rate_delay = config.rate_limit_delay if config.api_key else config.rate_limit_delay_no_key
         self._semaphore = asyncio.Semaphore(3 if config.api_key else 1)
 
     def _build_headers(self) -> dict:
@@ -57,9 +53,7 @@ class NVDClient:
         """
         async with self._semaphore:
             # Step 1: Exact CPE match
-            cves = await self._paginated_query(
-                client, {"cpeName": cpe_string, "resultsPerPage": 100}
-            )
+            cves = await self._paginated_query(client, {"cpeName": cpe_string, "resultsPerPage": 100})
 
             if cves:
                 logger.info(f"Found {len(cves)} CVEs (exact CPE) for {cpe_string}")
@@ -75,24 +69,18 @@ class NVDClient:
             logger.info(f"Exact CPE match returned 0 results. Falling back to keywordSearch: '{keyword}'")
 
             await asyncio.sleep(self.rate_delay)
-            cves = await self._paginated_query(
-                client, {"keywordSearch": keyword, "resultsPerPage": 50}
-            )
+            cves = await self._paginated_query(client, {"keywordSearch": keyword, "resultsPerPage": 50})
 
             # Filter by version if available — keyword search is broad
             if version and cves:
                 pre_filter = len(cves)
                 cves = self._filter_by_version_relevance(cves, vendor, product, version)
-                logger.debug(
-                    f"Keyword fallback: {pre_filter} raw → {len(cves)} after version filtering"
-                )
+                logger.debug(f"Keyword fallback: {pre_filter} raw → {len(cves)} after version filtering")
 
             logger.info(f"Found {len(cves)} CVEs (keyword fallback) for {cpe_string}")
             return cves
 
-    async def _paginated_query(
-        self, client: httpx.AsyncClient, base_params: dict
-    ) -> list[CVEEntry]:
+    async def _paginated_query(self, client: httpx.AsyncClient, base_params: dict) -> list[CVEEntry]:
         """Run a paginated NVD query."""
         cves = []
         start_index = 0
@@ -151,9 +139,7 @@ class NVDClient:
         # Cap at 50 to avoid noise from very broad keyword matches
         return filtered[:50]
 
-    async def _request_with_retry(
-        self, client: httpx.AsyncClient, params: dict
-    ) -> Optional[httpx.Response]:
+    async def _request_with_retry(self, client: httpx.AsyncClient, params: dict) -> httpx.Response | None:
         """Make request with retry logic for rate limits and transient errors."""
         for attempt in range(self.config.max_retries):
             try:
@@ -186,7 +172,7 @@ class NVDClient:
         return None
 
     @staticmethod
-    def _parse_cve(vuln_data: dict) -> Optional[CVEEntry]:
+    def _parse_cve(vuln_data: dict) -> CVEEntry | None:
         """Parse a single CVE entry from NVD response."""
         try:
             cve_data = vuln_data.get("cve", {})
@@ -217,9 +203,7 @@ class NVDClient:
                     break
 
             # Extract references
-            references = [
-                ref.get("url", "") for ref in cve_data.get("references", [])[:5]
-            ]
+            references = [ref.get("url", "") for ref in cve_data.get("references", [])[:5]]
 
             # Extract CWE IDs
             weaknesses = []
@@ -244,9 +228,7 @@ class NVDClient:
             return None
 
 
-async def query_all_assets(
-    assets_cpes: list[str], config: NVDConfig
-) -> dict[str, list[CVEEntry]]:
+async def query_all_assets(assets_cpes: list[str], config: NVDConfig) -> dict[str, list[CVEEntry]]:
     """Query NVD for all unique CPEs from asset inventory."""
     unique_cpes = list(set(assets_cpes))
     logger.info(f"Querying NVD for {len(unique_cpes)} unique CPEs...")

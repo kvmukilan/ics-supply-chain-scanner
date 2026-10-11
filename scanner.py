@@ -6,7 +6,6 @@ Inventory → NVD Query → KEV Cross-Reference → OT Risk Scoring → LLM Reme
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -14,7 +13,7 @@ from datetime import datetime, timezone
 from config import ScannerConfig
 from inventory import load_inventory
 from kev_client import KEVClient
-from models import Asset, Finding, ScanResult
+from models import Finding, ScanResult
 from nvd_client import NVDClient, query_all_assets
 from remediation import RemediationGenerator
 from report import generate_html_report, generate_json_report
@@ -94,10 +93,7 @@ class ICSScanner:
         result.total_cves = len(findings)
         result.total_kev_hits = sum(1 for f in findings if f.in_kev)
 
-        logger.info(
-            f"Scored {len(findings)} findings "
-            f"({result.total_kev_hits} in KEV)"
-        )
+        logger.info(f"Scored {len(findings)} findings ({result.total_kev_hits} in KEV)")
 
         # Step 5: Generate remediation
         logger.info("Step 5/5: Generating remediation playbooks...")

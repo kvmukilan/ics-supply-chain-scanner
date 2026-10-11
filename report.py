@@ -8,11 +8,9 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from datetime import datetime
-from io import StringIO
 from pathlib import Path
 
-from models import Finding, ScanResult, Severity
+from models import ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +117,11 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
 
     findings_html = ""
     for f in sorted(result.findings, key=lambda x: x.ot_risk_score, reverse=True):
-        kev_tag = ' <span style="background:#7c3aed;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">KEV</span>' if f.in_kev else ""
+        kev_tag = (
+            ' <span style="background:#7c3aed;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">KEV</span>'
+            if f.in_kev
+            else ""
+        )
 
         remediation_data = json.loads(f.remediation) if f.remediation else {}
         actions_html = ""
@@ -133,7 +135,9 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
             items = remediation_data.get(section_key, [])
             if items:
                 items_li = "".join(f"<li>{item}</li>" for item in items)
-                actions_html += f"<h4 style='margin:8px 0 4px'>{section_label}</h4><ul style='margin:0'>{items_li}</ul>"
+                actions_html += (
+                    f"<h4 style='margin:8px 0 4px'>{section_label}</h4><ul style='margin:0'>{items_li}</ul>"
+                )
 
         iec_tags = " ".join(
             f'<span style="background:#e0e7ff;color:#3730a3;padding:2px 6px;border-radius:4px;font-size:11px;margin-right:4px">{m.split(":")[0] if ":" in m else m}</span>'
@@ -152,13 +156,13 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
             <div style="margin-bottom:8px">
                 <strong>Asset:</strong> {f.asset.vendor} {f.asset.model} ({f.asset.name}) — Level {f.asset.purdue_level} | {f.asset.network_zone} | {f.asset.exposure.value}
             </div>
-            <div style="margin-bottom:8px;color:#374151;font-size:14px">{f.cve.description[:300]}{'...' if len(f.cve.description) > 300 else ''}</div>
+            <div style="margin-bottom:8px;color:#374151;font-size:14px">{f.cve.description[:300]}{"..." if len(f.cve.description) > 300 else ""}</div>
             <div style="margin-bottom:8px">{iec_tags}</div>
             <details>
                 <summary style="cursor:pointer;color:#2563eb;font-weight:600">Remediation Playbook</summary>
                 <div style="padding:8px 0">{actions_html}</div>
                 <div style="font-size:12px;color:#6b7280;margin-top:4px">
-                    Score: {f.score_breakdown.get('formula', 'N/A')}
+                    Score: {f.score_breakdown.get("formula", "N/A")}
                 </div>
             </details>
             <div style="margin-top:8px">
@@ -198,15 +202,15 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
                 <div class="label">Total CVEs</div>
             </div>
             <div class="stat">
-                <div class="value" style="color:#dc2626">{sev_dist.get('CRITICAL', 0)}</div>
+                <div class="value" style="color:#dc2626">{sev_dist.get("CRITICAL", 0)}</div>
                 <div class="label">Critical</div>
             </div>
             <div class="stat">
-                <div class="value" style="color:#ea580c">{sev_dist.get('HIGH', 0)}</div>
+                <div class="value" style="color:#ea580c">{sev_dist.get("HIGH", 0)}</div>
                 <div class="label">High</div>
             </div>
             <div class="stat">
-                <div class="value" style="color:#ca8a04">{sev_dist.get('MEDIUM', 0)}</div>
+                <div class="value" style="color:#ca8a04">{sev_dist.get("MEDIUM", 0)}</div>
                 <div class="label">Medium</div>
             </div>
             <div class="stat">
@@ -247,12 +251,28 @@ def generate_html_report(result: ScanResult, output_path: str) -> str:
 def generate_csv_report(result: ScanResult, output_path: str) -> str:
     """Generate CSV report for spreadsheet analysis and compliance tracking."""
     fieldnames = [
-        "Finding ID", "Asset Name", "Asset ID", "Vendor", "Model",
-        "Firmware", "CPE", "Purdue Level", "Network Zone", "Exposure",
-        "Patch Status", "CVE ID", "CVSS Base", "CVSS Vector",
-        "CVE Severity", "OT Risk Score", "OT Severity",
-        "In CISA KEV", "KEV Due Date", "KEV Required Action",
-        "IEC 62443 Mappings", "NVD URL",
+        "Finding ID",
+        "Asset Name",
+        "Asset ID",
+        "Vendor",
+        "Model",
+        "Firmware",
+        "CPE",
+        "Purdue Level",
+        "Network Zone",
+        "Exposure",
+        "Patch Status",
+        "CVE ID",
+        "CVSS Base",
+        "CVSS Vector",
+        "CVE Severity",
+        "OT Risk Score",
+        "OT Severity",
+        "In CISA KEV",
+        "KEV Due Date",
+        "KEV Required Action",
+        "IEC 62443 Mappings",
+        "NVD URL",
     ]
 
     path = Path(output_path)
@@ -269,30 +289,32 @@ def generate_csv_report(result: ScanResult, output_path: str) -> str:
                 kev_due = finding.kev_entry.due_date
                 kev_action = finding.kev_entry.required_action
 
-            writer.writerow({
-                "Finding ID": finding.finding_id,
-                "Asset Name": finding.asset.name,
-                "Asset ID": finding.asset.asset_id,
-                "Vendor": finding.asset.vendor,
-                "Model": finding.asset.model,
-                "Firmware": finding.asset.firmware_version,
-                "CPE": finding.asset.cpe,
-                "Purdue Level": finding.asset.purdue_level,
-                "Network Zone": finding.asset.network_zone,
-                "Exposure": finding.asset.exposure.value,
-                "Patch Status": finding.asset.patch_status.value,
-                "CVE ID": finding.cve.cve_id,
-                "CVSS Base": finding.cve.cvss_base_score,
-                "CVSS Vector": finding.cve.cvss_vector,
-                "CVE Severity": finding.cve.severity.value,
-                "OT Risk Score": round(finding.ot_risk_score, 2),
-                "OT Severity": finding.ot_severity.value,
-                "In CISA KEV": "Yes" if finding.in_kev else "No",
-                "KEV Due Date": kev_due,
-                "KEV Required Action": kev_action,
-                "IEC 62443 Mappings": " | ".join(finding.iec_62443_mappings),
-                "NVD URL": finding.cve.nvd_url,
-            })
+            writer.writerow(
+                {
+                    "Finding ID": finding.finding_id,
+                    "Asset Name": finding.asset.name,
+                    "Asset ID": finding.asset.asset_id,
+                    "Vendor": finding.asset.vendor,
+                    "Model": finding.asset.model,
+                    "Firmware": finding.asset.firmware_version,
+                    "CPE": finding.asset.cpe,
+                    "Purdue Level": finding.asset.purdue_level,
+                    "Network Zone": finding.asset.network_zone,
+                    "Exposure": finding.asset.exposure.value,
+                    "Patch Status": finding.asset.patch_status.value,
+                    "CVE ID": finding.cve.cve_id,
+                    "CVSS Base": finding.cve.cvss_base_score,
+                    "CVSS Vector": finding.cve.cvss_vector,
+                    "CVE Severity": finding.cve.severity.value,
+                    "OT Risk Score": round(finding.ot_risk_score, 2),
+                    "OT Severity": finding.ot_severity.value,
+                    "In CISA KEV": "Yes" if finding.in_kev else "No",
+                    "KEV Due Date": kev_due,
+                    "KEV Required Action": kev_action,
+                    "IEC 62443 Mappings": " | ".join(finding.iec_62443_mappings),
+                    "NVD URL": finding.cve.nvd_url,
+                }
+            )
 
     logger.info(f"CSV report saved to {path}")
     return str(path)
@@ -307,12 +329,14 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
     compliance = assess_compliance(result)
 
     posture_emoji = {
-        "compliant": "PASS", "at_risk": "WARN", "non_compliant": "FAIL",
+        "compliant": "PASS",
+        "at_risk": "WARN",
+        "non_compliant": "FAIL",
     }
     posture_label = posture_emoji.get(compliance.overall_posture, "?")
 
     lines = [
-        f"# ICS Supply Chain Vulnerability Report",
+        "# ICS Supply Chain Vulnerability Report",
         "",
         f"**Scan ID:** `{result.scan_id}` | "
         f"**Timestamp:** {result.timestamp} | "
@@ -338,9 +362,7 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
     lines.append("| FR | Requirement | Status | Findings | Critical | Assets |")
     lines.append("|-----|------------|--------|----------|----------|--------|")
     for fr_id, score in compliance.fr_scores.items():
-        status_marker = {"pass": "PASS", "at_risk": "WARN", "fail": "FAIL"}.get(
-            score.status, "?"
-        )
+        status_marker = {"pass": "PASS", "at_risk": "WARN", "fail": "FAIL"}.get(score.status, "?")
         lines.append(
             f"| {fr_id} | {score.fr_name} | **{status_marker}** | "
             f"{score.finding_count} | {score.critical_count} | {score.affected_assets} |"
@@ -377,9 +399,11 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
                 f"**Asset:** {f.asset.vendor} {f.asset.model} ({f.asset.name}) "
                 f"— Level {f.asset.purdue_level} | {f.asset.network_zone} | {f.asset.exposure.value}"
             )
-            lines.append(f"**OT Score:** {f.ot_risk_score:.2f} | "
-                         f"**CVSS:** {f.cve.cvss_base_score} | "
-                         f"**Severity:** {f.ot_severity.value}")
+            lines.append(
+                f"**OT Score:** {f.ot_risk_score:.2f} | "
+                f"**CVSS:** {f.cve.cvss_base_score} | "
+                f"**Severity:** {f.ot_severity.value}"
+            )
             desc = f.cve.description[:300]
             if len(f.cve.description) > 300:
                 desc += "..."
@@ -397,7 +421,7 @@ def generate_markdown_report(result: ScanResult, output_path: str) -> str:
         lines.append("")
 
     lines.append("---")
-    lines.append(f"*Generated by ICS Supply Chain Vulnerability Scanner*")
+    lines.append("*Generated by ICS Supply Chain Vulnerability Scanner*")
 
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)

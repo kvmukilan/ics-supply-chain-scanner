@@ -61,7 +61,10 @@ class OTRiskScorer:
             "kev_weight": kev_w,
             "raw_score": round(raw_score, 3),
             "final_score": round(final_score, 2),
-            "formula": f"{base} × {purdue_w} × {exposure_w} × {patch_w} × {kev_w} = {round(raw_score, 3)} → capped at {round(final_score, 2)}",
+            "formula": (
+                f"{base} × {purdue_w} × {exposure_w} × {patch_w} × {kev_w} "
+                f"= {round(raw_score, 3)} → capped at {round(final_score, 2)}"
+            ),
         }
 
         return final_score, breakdown
@@ -85,9 +88,7 @@ class OTRiskScorer:
 
     def score_finding(self, finding: Finding) -> Finding:
         """Score a finding in-place and return it."""
-        score, breakdown = self.score(
-            finding.asset, finding.cve, finding.in_kev
-        )
+        score, breakdown = self.score(finding.asset, finding.cve, finding.in_kev)
         finding.ot_risk_score = score
         finding.score_breakdown = breakdown
         finding.ot_severity = self.classify_ot_severity(score)

@@ -7,7 +7,6 @@ Foundational Requirement across Purdue levels.
 
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -91,6 +90,7 @@ IEC_62443_FRAMEWORK = {
 @dataclass
 class FRScore:
     """Score for a single Foundational Requirement."""
+
     fr_id: str
     fr_name: str
     finding_count: int = 0
@@ -103,6 +103,7 @@ class FRScore:
 @dataclass
 class ComplianceReport:
     """Full IEC 62443 compliance posture report."""
+
     scan_id: str
     total_findings: int = 0
     fr_scores: dict[str, FRScore] = field(default_factory=dict)
@@ -195,7 +196,6 @@ def _map_explicit_iec_mappings(findings: list[Finding], report: ComplianceReport
         for mapping in f.iec_62443_mappings:
             for fr_id in IEC_62443_FRAMEWORK:
                 if mapping.upper().startswith(fr_id):
-                    score = report.fr_scores[fr_id]
                     # Only increment if not already counted via CWE
                     # Use a simple heuristic: track affected asset count separately
                     break

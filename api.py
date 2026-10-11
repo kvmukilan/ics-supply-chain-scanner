@@ -9,19 +9,19 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
-import json
+import os
+import secrets
 import tempfile
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+from analytics import compute_analytics
 from config import ScannerConfig
 from inventory import load_inventory
 from kev_client import KEVClient
@@ -29,12 +29,10 @@ from models import (
     Asset,
     CVEEntry,
     Finding,
-    NetworkExposure,
-    PatchStatus,
     ScanResult,
     Severity,
 )
-from analytics import compute_analytics
+from rate_limiter import RateLimiterMiddleware
 from report import generate_csv_report, generate_html_report, generate_json_report
 from risk_scorer import OTRiskScorer
 from scanner import ICSScanner
@@ -48,12 +46,13 @@ app = FastAPI(
 # Intended for self-hosted internal use; restrict origins in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        origin.strip() for origin in os.getenv("SCANNER_CORS_ORIGINS", "").split(",") if origin.strip()
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from rate_limiter import RateLimiterMiddleware
 app.add_middleware(
     RateLimiterMiddleware,
     requests_per_minute=30,
@@ -63,8 +62,24 @@ app.add_middleware(
 
 # Shared state
 _config = ScannerConfig()
-_kev_client: Optional[KEVClient] = None
-_last_scan_result: Optional[ScanResult] = None
+_kev_client: KEVClient | None = None
+_last_scan_result: ScanResult | None = None
+API_KEY = os.getenv("SCANNER_API_KEY", "")
+MAX_INVENTORY_BYTES = 10 * 1024 * 1024
+
+
+@app.middleware("http")
+async def authenticate_api(request, call_next):
+    is_preflight = (
+        request.method == "OPTIONS"
+        and "origin" in request.headers
+        and "access-control-request-method" in request.headers
+    )
+    if API_KEY and request.url.path != "/health" and not is_preflight:
+        supplied = request.headers.get("X-API-Key", "")
+        if not secrets.compare_digest(supplied.encode(), API_KEY.encode()):
+            return JSONResponse({"detail": "Invalid API key"}, status_code=401)
+    return await call_next(request)
 
 
 async def get_kev_client() -> KEVClient:
@@ -77,8 +92,10 @@ async def get_kev_client() -> KEVClient:
 
 # --- Request/Response Models ---
 
+
 class ScoreRequest(BaseModel):
     """Single asset + CVE scoring request."""
+
     asset_name: str
     vendor: str
     model: str
@@ -118,20 +135,22 @@ class ScanResponse(BaseModel):
 
 # --- Endpoints ---
 
+
 @app.get("/health")
 async def health():
-    kev = await get_kev_client()
+    # A CISA outage must not cause healthy application instances to be restarted.
+    kev = _kev_client
     return {
         "status": "ok",
-        "kev_catalog_loaded": kev.is_loaded,
-        "kev_catalog_size": kev.catalog_size,
+        "kev_catalog_loaded": bool(kev and kev.is_loaded),
+        "kev_catalog_size": kev.catalog_size if kev else 0,
         "llm_configured": bool(_config.llm.endpoint and _config.llm.api_key),
     }
 
 
 @app.post("/scan", response_model=ScanResponse)
 async def run_scan(
-    inventory: UploadFile = File(..., description="CSV or JSON asset inventory"),
+    inventory: Annotated[UploadFile, File(description="CSV or JSON asset inventory")],
     skip_llm: bool = Query(False, description="Skip LLM remediation, use templates"),
 ):
     """Upload an asset inventory and run the full vulnerability scan pipeline."""
@@ -141,8 +160,10 @@ async def run_scan(
         raise HTTPException(400, "Inventory must be .csv or .json")
 
     # Save upload to temp file
+    content = await inventory.read(MAX_INVENTORY_BYTES + 1)
+    if len(content) > MAX_INVENTORY_BYTES:
+        raise HTTPException(413, "Inventory exceeds the 10 MiB upload limit")
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        content = await inventory.read()
         tmp.write(content)
         tmp_path = tmp.name
 
@@ -190,7 +211,7 @@ async def run_scan(
             errors=result.errors,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -235,8 +256,8 @@ async def score_single(req: ScoreRequest):
     scorer.score_finding(finding)
 
     # Template remediation (fast, no LLM call)
-    from remediation import RemediationGenerator
     from config import AzureOpenAIConfig
+    from remediation import RemediationGenerator
 
     gen = RemediationGenerator(AzureOpenAIConfig())
     finding = await gen.generate(finding)

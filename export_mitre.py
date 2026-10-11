@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from models import Finding, ScanResult, Severity
+from models import ScanResult
 
 # CWE -> ATT&CK for ICS technique mapping
 # Based on common vulnerability-to-technique relationships
@@ -28,8 +28,14 @@ CWE_TO_ATTCK_ICS = {
     "CWE-732": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
     "CWE-862": [("T0890", "Exploitation for Privilege Escalation", "TA0008")],
     # Memory corruption / code execution
-    "CWE-120": [("T0807", "Command-Line Interface", "TA0002"), ("T0831", "Manipulation of Control", "TA0011")],
-    "CWE-787": [("T0807", "Command-Line Interface", "TA0002"), ("T0831", "Manipulation of Control", "TA0011")],
+    "CWE-120": [
+        ("T0807", "Command-Line Interface", "TA0002"),
+        ("T0831", "Manipulation of Control", "TA0011"),
+    ],
+    "CWE-787": [
+        ("T0807", "Command-Line Interface", "TA0002"),
+        ("T0831", "Manipulation of Control", "TA0011"),
+    ],
     "CWE-119": [("T0807", "Command-Line Interface", "TA0002")],
     "CWE-20": [("T0855", "Unauthorized Command Message", "TA0011")],
     # Injection
@@ -69,6 +75,7 @@ ICS_TACTICS = {
 @dataclass
 class TechniqueHit:
     """A MITRE ATT&CK technique matched from findings."""
+
     technique_id: str
     technique_name: str
     tactic_id: str
@@ -108,14 +115,16 @@ def map_to_attck(result: ScanResult) -> dict:
     # Group by tactic
     by_tactic: dict[str, list[dict]] = defaultdict(list)
     for hit in sorted(hits.values(), key=lambda h: -h.max_ot_score):
-        by_tactic[f"{hit.tactic_id}: {hit.tactic_name}"].append({
-            "technique_id": hit.technique_id,
-            "technique_name": hit.technique_name,
-            "finding_count": hit.finding_count,
-            "max_ot_score": round(hit.max_ot_score, 2),
-            "cve_ids": hit.cve_ids,
-            "affected_assets": sorted(hit.affected_assets),
-        })
+        by_tactic[f"{hit.tactic_id}: {hit.tactic_name}"].append(
+            {
+                "technique_id": hit.technique_id,
+                "technique_name": hit.technique_name,
+                "finding_count": hit.finding_count,
+                "max_ot_score": round(hit.max_ot_score, 2),
+                "cve_ids": hit.cve_ids,
+                "affected_assets": sorted(hit.affected_assets),
+            }
+        )
 
     return {
         "total_techniques_matched": len(hits),

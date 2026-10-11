@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 
 class Severity(str, Enum):
@@ -16,7 +15,7 @@ class Severity(str, Enum):
     NONE = "NONE"
 
     @classmethod
-    def from_cvss(cls, score: float) -> "Severity":
+    def from_cvss(cls, score: float) -> Severity:
         if score >= 9.0:
             return cls.CRITICAL
         elif score >= 7.0:
@@ -46,6 +45,7 @@ class PatchStatus(str, Enum):
 @dataclass
 class Asset:
     """Represents an OT asset in the inventory."""
+
     name: str
     vendor: str
     model: str
@@ -57,7 +57,7 @@ class Asset:
     patch_status: PatchStatus = PatchStatus.AVAILABLE
     location: str = ""
     asset_id: str = ""
-    last_patched: Optional[str] = None
+    last_patched: str | None = None
     notes: str = ""
 
     def __post_init__(self):
@@ -71,6 +71,7 @@ class Asset:
 @dataclass
 class CVEEntry:
     """A CVE record from NVD."""
+
     cve_id: str
     description: str
     cvss_base_score: float
@@ -90,6 +91,7 @@ class CVEEntry:
 @dataclass
 class KEVEntry:
     """CISA Known Exploited Vulnerability entry."""
+
     cve_id: str
     vendor: str
     product: str
@@ -103,10 +105,11 @@ class KEVEntry:
 @dataclass
 class Finding:
     """A vulnerability finding tied to a specific asset."""
+
     asset: Asset
     cve: CVEEntry
     in_kev: bool = False
-    kev_entry: Optional[KEVEntry] = None
+    kev_entry: KEVEntry | None = None
     ot_risk_score: float = 0.0
     ot_severity: Severity = Severity.NONE
     remediation: str = ""
@@ -121,6 +124,7 @@ class Finding:
 @dataclass
 class ScanResult:
     """Complete scan result for an inventory."""
+
     scan_id: str
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     total_assets: int = 0

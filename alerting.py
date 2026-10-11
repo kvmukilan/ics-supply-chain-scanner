@@ -6,14 +6,12 @@ endpoints when scan results contain critical findings or KEV hits.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
 
 import httpx
 
-from models import Finding, ScanResult, Severity
+from models import Finding, ScanResult
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AlertRule:
     """Defines when to fire an alert."""
+
     min_ot_score: float = 8.5
     severities: list[str] = field(default_factory=lambda: ["CRITICAL"])
     kev_only: bool = False
@@ -30,15 +29,14 @@ class AlertRule:
 @dataclass
 class WebhookConfig:
     """Webhook destination configuration."""
+
     url: str
     webhook_type: str = "generic"  # "slack", "teams", "generic"
     headers: dict = field(default_factory=dict)
     enabled: bool = True
 
 
-def filter_alertable_findings(
-    findings: list[Finding], rule: AlertRule
-) -> list[Finding]:
+def filter_alertable_findings(findings: list[Finding], rule: AlertRule) -> list[Finding]:
     """Filter findings that match the alert rule."""
     matched = []
     for f in findings:
@@ -50,7 +48,7 @@ def filter_alertable_findings(
             matched.append(f)
 
     matched.sort(key=lambda x: x.ot_risk_score, reverse=True)
-    return matched[:rule.max_alerts_per_scan]
+    return matched[: rule.max_alerts_per_scan]
 
 
 def build_alert_payload(
@@ -116,19 +114,21 @@ def _build_slack_payload(result: ScanResult, findings: list[Finding]) -> dict:
 
     for f in findings[:10]:
         kev_tag = " :rotating_light: *KEV*" if f.in_kev else ""
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": (
-                    f"*<{f.cve.nvd_url}|{f.cve.cve_id}>*{kev_tag}\n"
-                    f"Asset: {f.asset.vendor} {f.asset.model} ({f.asset.name}) "
-                    f"| L{f.asset.purdue_level}\n"
-                    f"OT Score: *{f.ot_risk_score:.1f}* | CVSS: {f.cve.cvss_base_score}\n"
-                    f"{f.cve.description[:150]}"
-                ),
-            },
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": (
+                        f"*<{f.cve.nvd_url}|{f.cve.cve_id}>*{kev_tag}\n"
+                        f"Asset: {f.asset.vendor} {f.asset.model} ({f.asset.name}) "
+                        f"| L{f.asset.purdue_level}\n"
+                        f"OT Score: *{f.ot_risk_score:.1f}* | CVSS: {f.cve.cvss_base_score}\n"
+                        f"{f.cve.description[:150]}"
+                    ),
+                },
+            }
+        )
 
     return {"blocks": blocks}
 
@@ -147,10 +147,7 @@ def _build_teams_payload(result: ScanResult, findings: list[Finding]) -> dict:
     finding_rows = ""
     for f in findings[:10]:
         kev_flag = " [KEV]" if f.in_kev else ""
-        finding_rows += (
-            f"- **{f.cve.cve_id}**{kev_flag} | "
-            f"{f.asset.name} | Score: {f.ot_risk_score:.1f}\n"
-        )
+        finding_rows += f"- **{f.cve.cve_id}**{kev_flag} | {f.asset.name} | Score: {f.ot_risk_score:.1f}\n"
 
     return {
         "@type": "MessageCard",
@@ -171,7 +168,7 @@ def _build_teams_payload(result: ScanResult, findings: list[Finding]) -> dict:
 async def send_alert(
     result: ScanResult,
     webhook: WebhookConfig,
-    rule: Optional[AlertRule] = None,
+    rule: AlertRule | None = None,
 ) -> bool:
     """Filter findings by rule, build payload, and POST to webhook.
 

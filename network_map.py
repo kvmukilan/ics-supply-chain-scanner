@@ -8,7 +8,7 @@ annotated with finding counts and KEV flags.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from models import Finding, ScanResult, Severity
 
@@ -26,6 +26,7 @@ PURDUE_LEVELS = {
 @dataclass
 class AssetNode:
     """A single asset rendered on the network map."""
+
     name: str
     vendor: str
     model: str
@@ -42,6 +43,7 @@ class AssetNode:
 @dataclass
 class ZoneConnection:
     """A connection between two network zones."""
+
     from_zone: str
     to_zone: str
     finding_count: int = 0
@@ -99,28 +101,30 @@ def build_network_map(result: ScanResult) -> dict:
     levels = []
     for level in sorted(PURDUE_LEVELS.keys()):
         level_nodes = nodes.get(level, [])
-        levels.append({
-            "level": level,
-            "label": PURDUE_LEVELS[level],
-            "asset_count": len(level_nodes),
-            "total_findings": sum(n.finding_count for n in level_nodes),
-            "critical_count": sum(n.critical_count for n in level_nodes),
-            "assets": [
-                {
-                    "name": n.name,
-                    "vendor": n.vendor,
-                    "model": n.model,
-                    "zone": n.network_zone,
-                    "exposure": n.exposure,
-                    "findings": n.finding_count,
-                    "criticals": n.critical_count,
-                    "max_score": n.max_ot_score,
-                    "kev": n.has_kev,
-                    "color": n.risk_color,
-                }
-                for n in level_nodes
-            ],
-        })
+        levels.append(
+            {
+                "level": level,
+                "label": PURDUE_LEVELS[level],
+                "asset_count": len(level_nodes),
+                "total_findings": sum(n.finding_count for n in level_nodes),
+                "critical_count": sum(n.critical_count for n in level_nodes),
+                "assets": [
+                    {
+                        "name": n.name,
+                        "vendor": n.vendor,
+                        "model": n.model,
+                        "zone": n.network_zone,
+                        "exposure": n.exposure,
+                        "findings": n.finding_count,
+                        "criticals": n.critical_count,
+                        "max_score": n.max_ot_score,
+                        "kev": n.has_kev,
+                        "color": n.risk_color,
+                    }
+                    for n in level_nodes
+                ],
+            }
+        )
 
     return {
         "total_assets_with_findings": len(asset_findings),

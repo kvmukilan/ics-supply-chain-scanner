@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
 from models import Asset
@@ -22,7 +21,7 @@ def parse_sbom(filepath: str | Path) -> list[Asset]:
     if not filepath.exists():
         raise FileNotFoundError(f"SBOM file not found: {filepath}")
 
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         data = json.load(f)
 
     # Detect format
@@ -31,9 +30,7 @@ def parse_sbom(filepath: str | Path) -> list[Asset]:
     elif "spdxVersion" in data:
         return _parse_spdx(data)
     else:
-        raise ValueError(
-            "Unrecognized SBOM format. Supported: CycloneDX JSON, SPDX JSON"
-        )
+        raise ValueError("Unrecognized SBOM format. Supported: CycloneDX JSON, SPDX JSON")
 
 
 def _parse_cyclonedx(data: dict) -> list[Asset]:
@@ -84,7 +81,7 @@ def _parse_cyclonedx(data: dict) -> list[Asset]:
             network_zone=properties.get("network_zone", "unknown"),
             exposure=properties.get("exposure", "isolated"),
             patch_status=properties.get("patch_status", "available"),
-            asset_id=comp.get("bom-ref", f"SBOM-{i+1:04d}"),
+            asset_id=comp.get("bom-ref", f"SBOM-{i + 1:04d}"),
         )
         assets.append(asset)
 
@@ -135,7 +132,7 @@ def _parse_spdx(data: dict) -> list[Asset]:
             cpe=cpe,
             purdue_level=3.0,  # Default for SPDX (no OT context)
             network_zone="unknown",
-            asset_id=pkg.get("SPDXID", f"SBOM-{i+1:04d}"),
+            asset_id=pkg.get("SPDXID", f"SBOM-{i + 1:04d}"),
         )
         assets.append(asset)
 
