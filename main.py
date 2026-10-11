@@ -36,12 +36,14 @@ Examples:
         """,
     )
     parser.add_argument(
-        "-i", "--inventory",
+        "-i",
+        "--inventory",
         required=True,
         help="Path to asset inventory file (CSV, JSON, or SBOM CycloneDX/SPDX JSON)",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="output",
         help="Output directory for reports (default: output)",
     )
@@ -149,8 +151,14 @@ async def main() -> int:
     result = await scanner.scan(str(inventory_path))
 
     # Generate reports
-    from report import generate_csv_report, generate_html_report, generate_json_report, generate_markdown_report
     from datetime import datetime, timezone
+
+    from report import (
+        generate_csv_report,
+        generate_html_report,
+        generate_json_report,
+        generate_markdown_report,
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     prefix = f"{args.output}/{result.scan_id}_{timestamp}"
@@ -169,6 +177,7 @@ async def main() -> int:
 
     if args.sarif or not args.json_only:
         from sarif_export import generate_sarif_report
+
         sarif_path = generate_sarif_report(result, f"{prefix}_report.sarif")
         logger.info(f"SARIF report: {sarif_path}")
 
@@ -187,9 +196,11 @@ async def main() -> int:
     # Risk timeline snapshot
     if result.findings:
         from risk_timeline import capture_snapshot, save_snapshot
+
         posture = ""
         if result.findings:
             from compliance import assess_compliance as _assess
+
             posture = _assess(result).overall_posture
         snap = capture_snapshot(result, compliance_posture=posture)
         save_snapshot(snap)
@@ -197,7 +208,9 @@ async def main() -> int:
     # Quality gate
     gate_exit = 0
     if args.gate:
-        from quality_gate import GatePolicy, evaluate as gate_evaluate
+        from quality_gate import GatePolicy
+        from quality_gate import evaluate as gate_evaluate
+
         gate_policy = GatePolicy(
             max_critical=args.gate_max_critical,
             max_kev=args.gate_max_kev,
@@ -205,6 +218,7 @@ async def main() -> int:
         posture_str = ""
         if result.findings:
             from compliance import assess_compliance as _assess_comp
+
             posture_str = _assess_comp(result).overall_posture
         gate_result = gate_evaluate(result, gate_policy, compliance_posture=posture_str)
         if not gate_result.passed:
@@ -231,9 +245,13 @@ async def main() -> int:
     # IEC 62443 compliance posture
     if result.findings:
         from compliance import assess_compliance
+
         compliance = assess_compliance(result)
         posture_icon = {"compliant": "[OK]", "at_risk": "[!!]", "non_compliant": "[XX]"}
-        print(f"\nIEC 62443 Posture: {posture_icon.get(compliance.overall_posture, '?')} {compliance.overall_posture.upper()}")
+        print(
+            f"\nIEC 62443 Posture: {posture_icon.get(compliance.overall_posture, '?')} "
+            f"{compliance.overall_posture.upper()}"
+        )
         failing = [fr for fr, s in compliance.fr_scores.items() if s.status == "fail"]
         at_risk = [fr for fr, s in compliance.fr_scores.items() if s.status == "at_risk"]
         if failing:
@@ -244,9 +262,9 @@ async def main() -> int:
     # Quality gate result
     if args.gate:
         if gate_result.passed:
-            print(f"\nQuality Gate: PASSED")
+            print("\nQuality Gate: PASSED")
         else:
-            print(f"\nQuality Gate: FAILED")
+            print("\nQuality Gate: FAILED")
             for v in gate_result.violations:
                 print(f"  VIOLATION: {v.message}")
 
@@ -302,8 +320,8 @@ def _validate_inventory(inventory_path: str, logger) -> int:
 
 def _run_diff(baseline_path: str, current_result, logger) -> None:
     """Compare current scan against a previous JSON report."""
-    from scan_diff import compare_scans
     from models import ScanResult
+    from scan_diff import compare_scans
 
     baseline_file = Path(baseline_path)
     if not baseline_file.exists():
@@ -324,6 +342,7 @@ def _run_diff(baseline_path: str, current_result, logger) -> None:
 
         # Rebuild findings from report data
         from models import Asset, CVEEntry, Finding, Severity
+
         for fd in baseline_data.get("findings", []):
             asset_d = fd.get("asset", {})
             vuln_d = fd.get("vulnerability", {})
@@ -346,10 +365,12 @@ def _run_diff(baseline_path: str, current_result, logger) -> None:
                 cvss_base_score=float(vuln_d.get("cvss_base", 0)),
                 cvss_vector=vuln_d.get("cvss_vector", ""),
                 severity=Severity(vuln_d.get("severity", "NONE")),
-                published="", last_modified="",
+                published="",
+                last_modified="",
             )
             finding = Finding(
-                asset=asset, cve=cve,
+                asset=asset,
+                cve=cve,
                 in_kev=risk_d.get("in_kev", False),
                 ot_risk_score=float(risk_d.get("ot_risk_score", 0)),
                 ot_severity=Severity(risk_d.get("ot_severity", "NONE")),

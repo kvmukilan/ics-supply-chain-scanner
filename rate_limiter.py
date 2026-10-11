@@ -9,6 +9,7 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -17,6 +18,7 @@ from starlette.responses import JSONResponse
 @dataclass
 class TokenBucket:
     """Token bucket for a single client."""
+
     capacity: int
     refill_rate: float  # tokens per second
     tokens: float = 0.0

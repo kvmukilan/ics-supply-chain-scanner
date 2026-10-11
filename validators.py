@@ -33,7 +33,11 @@ def validate_cpe(cpe: str) -> tuple[bool, str]:
 
     parts = cpe.split(":")
     if len(parts) < 6:
-        return False, f"CPE must have at least 6 colon-separated fields (part:vendor:product:version), got {len(parts)}"
+        return (
+            False,
+            f"CPE must have at least 6 colon-separated fields "
+            f"(part:vendor:product:version), got {len(parts)}",
+        )
 
     if len(parts) > 13:
         return False, f"CPE has too many fields ({len(parts)}), expected at most 13"

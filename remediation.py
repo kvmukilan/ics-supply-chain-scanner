@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Optional
 
 from config import AzureOpenAIConfig
 from models import Finding
@@ -57,9 +56,9 @@ def _build_langchain_chain(config: AzureOpenAIConfig):
     Uses AzureChatOpenAI with a structured prompt template and
     JsonOutputParser for reliable JSON extraction.
     """
-    from langchain_openai import AzureChatOpenAI
-    from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import JsonOutputParser
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_openai import AzureChatOpenAI
 
     llm = AzureChatOpenAI(
         azure_endpoint=config.endpoint,
@@ -70,10 +69,12 @@ def _build_langchain_chain(config: AzureOpenAIConfig):
         max_tokens=config.max_tokens,
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{finding_prompt}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", SYSTEM_PROMPT),
+            ("human", "{finding_prompt}"),
+        ]
+    )
 
     parser = JsonOutputParser()
 
@@ -89,9 +90,7 @@ class RemediationGenerator:
         self._enabled = bool(config.endpoint and config.api_key)
         self._chain = None
         if not self._enabled:
-            logger.warning(
-                "Azure OpenAI not configured. Using template-based remediation."
-            )
+            logger.warning("Azure OpenAI not configured. Using template-based remediation.")
 
     def _get_chain(self):
         """Lazy-initialize the LangChain chain."""
@@ -131,7 +130,7 @@ Vulnerability: {finding.cve.cve_id}
   CVSS Score: {finding.cve.cvss_base_score}
   Vector: {finding.cve.cvss_vector}
   Description: {finding.cve.description}
-  CWE: {', '.join(finding.cve.weaknesses) if finding.cve.weaknesses else 'N/A'}
+  CWE: {", ".join(finding.cve.weaknesses) if finding.cve.weaknesses else "N/A"}
 {kev_info}
 
 OT Risk Score: {finding.ot_risk_score:.2f} ({finding.ot_severity.value})
@@ -238,9 +237,7 @@ Respond with JSON only. No markdown, no code fences."""
         finding.remediation = json.dumps(remediation_doc, indent=2)
         return finding
 
-    async def generate_batch(
-        self, findings: list[Finding], max_concurrent: int = 3
-    ) -> list[Finding]:
+    async def generate_batch(self, findings: list[Finding], max_concurrent: int = 3) -> list[Finding]:
         """Generate remediation for multiple findings with concurrency control."""
         semaphore = asyncio.Semaphore(max_concurrent)
 

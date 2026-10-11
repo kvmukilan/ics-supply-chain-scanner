@@ -17,7 +17,9 @@ from models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
-SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json"
+SARIF_SCHEMA = (
+    "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json"
+)
 SARIF_VERSION = "2.1.0"
 
 SEVERITY_TO_SARIF_LEVEL = {
@@ -156,8 +158,7 @@ def _build_results(findings: list[Finding]) -> list[dict]:
                         {
                             "name": f.asset.name,
                             "fullyQualifiedName": (
-                                f"{f.asset.vendor}/{f.asset.model}/"
-                                f"{f.asset.firmware_version}"
+                                f"{f.asset.vendor}/{f.asset.model}/{f.asset.firmware_version}"
                             ),
                             "kind": "asset",
                             "properties": {

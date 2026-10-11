@@ -8,12 +8,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from models import Finding, ScanResult, Severity
+from models import ScanResult, Severity
 
 
 @dataclass
 class FindingDelta:
     """A single finding that changed between scans."""
+
     finding_id: str
     cve_id: str
     asset_name: str
@@ -28,6 +29,7 @@ class FindingDelta:
 @dataclass
 class ScanDiff:
     """Result of comparing two scans."""
+
     baseline_scan_id: str
     current_scan_id: str
     new_findings: list[FindingDelta] = field(default_factory=list)
@@ -48,9 +50,7 @@ class ScanDiff:
             "score_changes": len(self.score_changes),
             "unchanged": self.unchanged_count,
             "total_changes": self.total_changes,
-            "new_critical": sum(
-                1 for f in self.new_findings if f.new_severity == Severity.CRITICAL.value
-            ),
+            "new_critical": sum(1 for f in self.new_findings if f.new_severity == Severity.CRITICAL.value),
             "new_kev": sum(1 for f in self.new_findings if f.in_kev),
         }
 
@@ -80,28 +80,32 @@ def compare_scans(baseline: ScanResult, current: ScanResult, score_threshold: fl
     # New findings (in current but not baseline)
     for fid in current_ids - baseline_ids:
         f = current_map[fid]
-        diff.new_findings.append(FindingDelta(
-            finding_id=fid,
-            cve_id=f.cve.cve_id,
-            asset_name=f.asset.name,
-            status="new",
-            new_ot_score=round(f.ot_risk_score, 2),
-            new_severity=f.ot_severity.value,
-            in_kev=f.in_kev,
-        ))
+        diff.new_findings.append(
+            FindingDelta(
+                finding_id=fid,
+                cve_id=f.cve.cve_id,
+                asset_name=f.asset.name,
+                status="new",
+                new_ot_score=round(f.ot_risk_score, 2),
+                new_severity=f.ot_severity.value,
+                in_kev=f.in_kev,
+            )
+        )
 
     # Resolved findings (in baseline but not current)
     for fid in baseline_ids - current_ids:
         f = baseline_map[fid]
-        diff.resolved_findings.append(FindingDelta(
-            finding_id=fid,
-            cve_id=f.cve.cve_id,
-            asset_name=f.asset.name,
-            status="resolved",
-            old_ot_score=round(f.ot_risk_score, 2),
-            old_severity=f.ot_severity.value,
-            in_kev=f.in_kev,
-        ))
+        diff.resolved_findings.append(
+            FindingDelta(
+                finding_id=fid,
+                cve_id=f.cve.cve_id,
+                asset_name=f.asset.name,
+                status="resolved",
+                old_ot_score=round(f.ot_risk_score, 2),
+                old_severity=f.ot_severity.value,
+                in_kev=f.in_kev,
+            )
+        )
 
     # Changed findings (in both, but score or severity changed)
     for fid in baseline_ids & current_ids:
@@ -119,17 +123,19 @@ def compare_scans(baseline: ScanResult, current: ScanResult, score_threshold: fl
             else:
                 status = "severity_changed"
 
-            diff.score_changes.append(FindingDelta(
-                finding_id=fid,
-                cve_id=new.cve.cve_id,
-                asset_name=new.asset.name,
-                status=status,
-                old_ot_score=round(old.ot_risk_score, 2),
-                new_ot_score=round(new.ot_risk_score, 2),
-                old_severity=old.ot_severity.value,
-                new_severity=new.ot_severity.value,
-                in_kev=new.in_kev,
-            ))
+            diff.score_changes.append(
+                FindingDelta(
+                    finding_id=fid,
+                    cve_id=new.cve.cve_id,
+                    asset_name=new.asset.name,
+                    status=status,
+                    old_ot_score=round(old.ot_risk_score, 2),
+                    new_ot_score=round(new.ot_risk_score, 2),
+                    old_severity=old.ot_severity.value,
+                    new_severity=new.ot_severity.value,
+                    in_kev=new.in_kev,
+                )
+            )
         else:
             diff.unchanged_count += 1
 

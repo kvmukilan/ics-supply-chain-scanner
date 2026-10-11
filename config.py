@@ -2,6 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,33 +39,40 @@ class CISAKEVConfig:
 @dataclass
 class OTRiskWeights:
     """OT-specific risk scoring multipliers."""
+
     # Purdue level weights: lower levels = higher impact on physical process
-    purdue_weights: dict = field(default_factory=lambda: {
-        0: 1.5,   # Physical process (sensors, actuators)
-        1: 1.5,   # Basic control (PLCs, RTUs)
-        2: 1.2,   # Area supervisory (HMI, SCADA servers)
-        3: 1.0,   # Site operations (historian, OPC servers)
-        3.5: 0.9, # DMZ
-        4: 0.8,   # Enterprise IT
-        5: 0.8,   # Enterprise network
-    })
+    purdue_weights: dict = field(
+        default_factory=lambda: {
+            0: 1.5,  # Physical process (sensors, actuators)
+            1: 1.5,  # Basic control (PLCs, RTUs)
+            2: 1.2,  # Area supervisory (HMI, SCADA servers)
+            3: 1.0,  # Site operations (historian, OPC servers)
+            3.5: 0.9,  # DMZ
+            4: 0.8,  # Enterprise IT
+            5: 0.8,  # Enterprise network
+        }
+    )
 
     # Network exposure multipliers
-    exposure_weights: dict = field(default_factory=lambda: {
-        "internet": 1.4,
-        "corporate": 1.1,
-        "dmz": 1.0,
-        "isolated": 0.7,
-        "air-gapped": 0.6,
-    })
+    exposure_weights: dict = field(
+        default_factory=lambda: {
+            "internet": 1.4,
+            "corporate": 1.1,
+            "dmz": 1.0,
+            "isolated": 0.7,
+            "air-gapped": 0.6,
+        }
+    )
 
     # Patch feasibility
-    patch_weights: dict = field(default_factory=lambda: {
-        "available": 0.9,
-        "scheduled": 1.0,
-        "unavailable": 1.3,
-        "eol": 1.4,  # End of life - no patches coming
-    })
+    patch_weights: dict = field(
+        default_factory=lambda: {
+            "available": 0.9,
+            "scheduled": 1.0,
+            "unavailable": 1.3,
+            "eol": 1.4,  # End of life - no patches coming
+        }
+    )
 
     # CISA KEV presence
     kev_multiplier: float = 1.5

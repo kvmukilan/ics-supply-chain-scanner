@@ -9,7 +9,6 @@ deployments that don't meet OT security standards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from models import ScanResult, Severity
 
@@ -17,6 +16,7 @@ from models import ScanResult, Severity
 @dataclass
 class GatePolicy:
     """Configurable security thresholds for the quality gate."""
+
     max_critical: int = 0
     max_high: int = 5
     max_kev: int = 0
@@ -29,6 +29,7 @@ class GatePolicy:
 @dataclass
 class GateViolation:
     """A single quality gate violation."""
+
     rule: str
     message: str
     actual: str
@@ -38,6 +39,7 @@ class GateViolation:
 @dataclass
 class GateResult:
     """Outcome of a quality gate evaluation."""
+
     passed: bool
     violations: list[GateViolation] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -67,7 +69,7 @@ _POSTURE_RANK = {"compliant": 3, "at_risk": 2, "non_compliant": 1}
 
 def evaluate(
     result: ScanResult,
-    policy: Optional[GatePolicy] = None,
+    policy: GatePolicy | None = None,
     compliance_posture: str = "",
 ) -> GateResult:
     """Evaluate scan results against a quality gate policy.
@@ -89,12 +91,8 @@ def evaluate(
     warnings: list[str] = []
 
     # Count severities
-    critical_count = sum(
-        1 for f in result.findings if f.ot_severity == Severity.CRITICAL
-    )
-    high_count = sum(
-        1 for f in result.findings if f.ot_severity == Severity.HIGH
-    )
+    critical_count = sum(1 for f in result.findings if f.ot_severity == Severity.CRITICAL)
+    high_count = sum(1 for f in result.findings if f.ot_severity == Severity.HIGH)
     kev_count = sum(1 for f in result.findings if f.in_kev)
     scores = [f.ot_risk_score for f in result.findings]
     mean_score = round(sum(scores) / len(scores), 2) if scores else 0.0
@@ -102,60 +100,77 @@ def evaluate(
 
     # Check critical findings
     if critical_count > policy.max_critical:
-        violations.append(GateViolation(
-            rule="max_critical",
-            message=f"{critical_count} critical findings exceed threshold of {policy.max_critical}",
-            actual=str(critical_count),
-            threshold=str(policy.max_critical),
-        ))
+        violations.append(
+            GateViolation(
+                rule="max_critical",
+                message=f"{critical_count} critical findings exceed threshold of {policy.max_critical}",
+                actual=str(critical_count),
+                threshold=str(policy.max_critical),
+            )
+        )
 
     # Check high findings
     if high_count > policy.max_high:
-        violations.append(GateViolation(
-            rule="max_high",
-            message=f"{high_count} high findings exceed threshold of {policy.max_high}",
-            actual=str(high_count),
-            threshold=str(policy.max_high),
-        ))
+        violations.append(
+            GateViolation(
+                rule="max_high",
+                message=f"{high_count} high findings exceed threshold of {policy.max_high}",
+                actual=str(high_count),
+                threshold=str(policy.max_high),
+            )
+        )
 
     # Check KEV findings
     if policy.fail_on_kev and kev_count > policy.max_kev:
-        violations.append(GateViolation(
-            rule="max_kev",
-            message=f"{kev_count} CISA KEV findings exceed threshold of {policy.max_kev}",
-            actual=str(kev_count),
-            threshold=str(policy.max_kev),
-        ))
+        violations.append(
+            GateViolation(
+                rule="max_kev",
+                message=f"{kev_count} CISA KEV findings exceed threshold of {policy.max_kev}",
+                actual=str(kev_count),
+                threshold=str(policy.max_kev),
+            )
+        )
 
     # Check mean OT score
     if scores and mean_score > policy.max_mean_ot_score:
-        violations.append(GateViolation(
-            rule="max_mean_ot_score",
-            message=f"Mean OT risk score {mean_score} exceeds threshold of {policy.max_mean_ot_score}",
-            actual=str(mean_score),
-            threshold=str(policy.max_mean_ot_score),
-        ))
+        violations.append(
+            GateViolation(
+                rule="max_mean_ot_score",
+                message=f"Mean OT risk score {mean_score} exceeds threshold of {policy.max_mean_ot_score}",
+                actual=str(mean_score),
+                threshold=str(policy.max_mean_ot_score),
+            )
+        )
 
     # Check single highest score
     if scores and max_score > policy.max_single_ot_score:
-        violations.append(GateViolation(
-            rule="max_single_ot_score",
-            message=f"Highest OT risk score {max_score} exceeds threshold of {policy.max_single_ot_score}",
-            actual=str(max_score),
-            threshold=str(policy.max_single_ot_score),
-        ))
+        violations.append(
+            GateViolation(
+                rule="max_single_ot_score",
+                message=(
+                    f"Highest OT risk score {max_score} exceeds threshold of {policy.max_single_ot_score}"
+                ),
+                actual=str(max_score),
+                threshold=str(policy.max_single_ot_score),
+            )
+        )
 
     # Check compliance posture
     if compliance_posture:
         required_rank = _POSTURE_RANK.get(policy.min_compliance_posture, 0)
         actual_rank = _POSTURE_RANK.get(compliance_posture, 0)
         if actual_rank < required_rank:
-            violations.append(GateViolation(
-                rule="min_compliance_posture",
-                message=f"Compliance posture '{compliance_posture}' does not meet minimum '{policy.min_compliance_posture}'",
-                actual=compliance_posture,
-                threshold=policy.min_compliance_posture,
-            ))
+            violations.append(
+                GateViolation(
+                    rule="min_compliance_posture",
+                    message=(
+                        f"Compliance posture '{compliance_posture}' does not meet "
+                        f"minimum '{policy.min_compliance_posture}'"
+                    ),
+                    actual=compliance_posture,
+                    threshold=policy.min_compliance_posture,
+                )
+            )
 
     # Warnings (informational, don't fail the gate)
     if result.errors:
