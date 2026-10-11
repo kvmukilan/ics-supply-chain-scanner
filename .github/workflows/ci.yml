@@ -54,6 +54,6 @@ jobs:
           docker build -t scanner:ci .
           docker run -d --name scanner-ci -p 127.0.0.1:8000:8000 -e SCANNER_API_KEY=ci-only scanner:ci
           trap 'docker logs scanner-ci; docker rm -f scanner-ci' EXIT
-          curl --fail --retry 20 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/health
+          curl --fail --retry 20 --retry-all-errors --retry-delay 2 --retry-max-time 60 --max-time 5 http://127.0.0.1:8000/health
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/scan)" = 401
           test "$(docker exec scanner-ci id -u)" = 10001
